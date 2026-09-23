@@ -118,17 +118,44 @@ function extractPhotos(html: string, ld: any, root: HTMLElement) {
   return [...photos.values()].slice(0, 60);
 }
 
-function extractRooms(html: string, root: HTMLElement) {
+// Words that appear in real room-type names (English and Hebrew Booking pages).
+const ROOM_WORDS = /\b(room|suite|studio|apartment|villa|bungalow|chalet|cottage|house|loft|penthouse|dormitory|dorm|cabin|double|twin|single|triple|quadruple|family|deluxe|superior|standard|classic|junior|executive|premium|economy|budget|king|queen|bedroom)\b|חדר|סוויטה|דירה|דירת|סטודיו|וילה|בונגלו|צימר|זוגי|יחיד|משפחתי|דלוקס|סופיריור|סטנדרט|מיטה|מיטות/i;
+// Page chrome and error text that must never become a room name.
+const NOT_ROOM = /something went wrong|try again|please|loading|error|sign in|log in|show more|see more|see availability|availability|select|reserve|book now|price|per night|taxes|charges|cancel|breakfast included|only \d+ left|reviews?|rating|[€$₪£]|\d+[.,]\d{2}|משהו השתבש|נסו שוב|טוען|הצג עוד|מחיר|לילה|מסים|הזמ(ינו|נה) עכשיו|בחר/i;
+
+export function looksLikeRoom(name: string) {
+  const n = clean(name);
+  return n.length >= 4 && n.length <= 80 && ROOM_WORDS.test(n) && !NOT_ROOM.test(n) && !/^\d+$/.test(n);
+}
+
+function extractRooms(html: string, root: HTMLElement, pageText: string) {
   const rooms = new Map<string, string>();
   const add = (id: string | undefined, name: string) => {
     const n = clean(name).split(/\s{2,}|\n/)[0];
-    if (id && n.length >= 3 && n.length <= 90 && !/^\d+$/.test(n) && !rooms.has(id)) rooms.set(id, n);
+    if (id && looksLikeRoom(n) && !rooms.has(id) && ![...rooms.values()].includes(n)) rooms.set(id, n);
   };
-  for (const el of root.querySelectorAll("a.hprt-roomtype-link, span.hprt-roomtype-icon-link, [data-room-id]")) {
-    add(el.getAttribute("data-room-id") || undefined, el.text);
+
+  // 1. Booking's rooms table and room links.
+  for (const el of root.querySelectorAll(".hprt-roomtype-icon-link, a.hprt-roomtype-link, [data-room-name]")) {
+    const id = el.getAttribute("data-room-id") || el.closest("[data-room-id]")?.getAttribute("data-room-id") || undefined;
+    add(id, el.getAttribute("data-room-name") || el.text);
   }
+  // 2. Any element carrying a room id: use its first heading/link text, never the whole block.
+  for (const el of root.querySelectorAll("[data-room-id]")) {
+    const id = el.getAttribute("data-room-id") || undefined;
+    const title = el.querySelector("h1, h2, h3, h4, a, [data-testid*='title'], [class*='roomtype'], [class*='room-name'], [class*='room_name']");
+    add(id, title ? title.text : el.childNodes.length === 1 ? el.text : "");
+  }
+  // 3. Room data embedded in page scripts.
   for (const m of html.matchAll(/"room_?name"\s*:\s*"([^"]{3,90})"[^{}]{0,400}?"room_?id"\s*:\s*"?(\d+)/gi)) add(m[2], m[1]);
   for (const m of html.matchAll(/"room_?id"\s*:\s*"?(\d+)"?[^{}]{0,400}?"room_?name"\s*:\s*"([^"]{3,90})"/gi)) add(m[1], m[2]);
+
+  // 4. Fallback: short lines in the page text that start like a room type (no photos linked).
+  if (rooms.size === 0) {
+    const start = /^(deluxe|superior|standard|classic|junior|executive|premium|economy|family|double|twin|single|triple|quadruple|king|queen|suite|studio|apartment|one-bedroom|two-bedroom|villa|bungalow|חדר|סוויטה|דירת|סטודיו|וילה)\b/i;
+    pageText.split("\n").map(clean).filter((l) => start.test(l) && looksLikeRoom(l)).slice(0, 10)
+      .forEach((l, i) => add(`text${i}`, l));
+  }
   return [...rooms.entries()].slice(0, 20).map(([id, name]) => ({ id, name }));
 }
 
@@ -161,11 +188,12 @@ export function extract(html: string, sourceUrl: string): Snapshot {
   ).slice(0, 14);
 
   const photos = extractPhotos(html, ld, root);
-  const rooms = extractRooms(html, root);
   const stars = extractStars(html, ld, root);
-
-  root.querySelectorAll("script, style, noscript, svg").forEach((n) => n.remove());
-  const body = (root.querySelector("body") || root).structuredText.replace(/\n{2,}/g, "\n").slice(0, 14000);
+  const textRoot = parse(html);
+  textRoot.querySelectorAll("script, style, noscript, svg").forEach((n) => n.remove());
+  const fullText = (textRoot.querySelector("body") || textRoot).structuredText.replace(/\n{2,}/g, "\n");
+  const rooms = extractRooms(html, root, fullText);
+  const body = fullText.slice(0, 14000);
 
   return {
     sourceUrl,
@@ -220,7 +248,7 @@ export async function polishWithClaude(s: Snapshot, draft: ReturnType<typeof dra
  "tags": string[] (Hebrew, up to 6 short amenity tags, 1-3 words each),
  "address": string,
  "rooms": [{"sourceId": string or null (the id from the rooms list if it matches), "name": string (Hebrew name of the room type), "description": string (Hebrew, one short line: beds, size, view, if stated)}]}
-Rules: never include prices, taxes or availability. Keep every room type from the rooms list (use its id as sourceId). Add room types that appear only in pageText with sourceId null. Maximum 12 rooms.
+Rules: never include prices, taxes or availability. Ignore website error messages or interface text (e.g. "Something went wrong") — they are not room types. Keep every room type from the rooms list (use its id as sourceId). Add room types that appear only in pageText with sourceId null. Maximum 12 rooms.
 
 DATA:
 ${JSON.stringify(input)}`;
@@ -239,7 +267,7 @@ ${JSON.stringify(input)}`;
     const rooms = (Array.isArray(j.rooms) ? j.rooms : []).slice(0, 12).map((r: any) => {
       const base = r.sourceId ? bySource.get(String(r.sourceId)) : undefined;
       return { id: base?.id || newId(), sourceId: base?.sourceId || "", name: clean(r.name) || base?.name || "", description: clean(r.description), images: base?.images || [], show: false };
-    });
+    }).filter((r: any) => r.name && !/something went wrong|try again|משהו השתבש/i.test(r.name));
     return {
       polished: true,
       hotel: {

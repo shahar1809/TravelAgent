@@ -2,6 +2,8 @@ import { dayMonth, nights } from "../dates.js";
 import { newId } from "../trip.js";
 import { Icon, Notice } from "../ui.jsx";
 import { Area, Field, Select, TagsField } from "./fields.jsx";
+import HotelImport from "./HotelImport.jsx";
+import HotelMedia from "./HotelMedia.jsx";
 
 const COLORS = ["#2E5A5C", "#C8923A", "#6B7248", "#B5502F", "#6E9A9B", "#8E5A2E"];
 
@@ -69,6 +71,10 @@ export default function EditHotels({ trip, update, saved, action }) {
                     })}><Icon name="trash" size={18} /></button>
                   </div>
                 </div>
+                <HotelImport onImported={(imp) => update((t) => {
+                  const cur = t.stops[si].hotels[hi];
+                  t.stops[si].hotels[hi] = { ...cur, ...imp, id: cur.id, priceNote: cur.priceNote, color: cur.color };
+                })} />
                 <Field label="שם המלון" value={h.name} onChange={(v) => update((t) => { t.stops[si].hotels[hi].name = v; })} />
                 <div className="grid-2">
                   <Select label="כוכבים" value={String(h.stars)} onChange={(v) => update((t) => { t.stops[si].hotels[hi].stars = Number(v); })}
@@ -77,8 +83,9 @@ export default function EditHotels({ trip, update, saved, action }) {
                 </div>
                 <Area label="תיאור" rows={3} value={h.description} onChange={(v) => update((t) => { t.stops[si].hotels[hi].description = v; })} />
                 <TagsField label="תגיות" value={h.tags} onChange={(v) => update((t) => { t.stops[si].hotels[hi].tags = v; })} />
-                <Field label="קישור לאתר המלון" type="url" dir="ltr" value={h.link} onChange={(v) => update((t) => { t.stops[si].hotels[hi].link = v; })} />
-                <Field label="קישור לתמונה" type="url" dir="ltr" hint="אופציונלי. בלי תמונה מוצג צבע" value={h.imageUrl} onChange={(v) => update((t) => { t.stops[si].hotels[hi].imageUrl = v; })} />
+                <Field label="קישור למלון" hint="מתמלא בייבוא. הלקוח רואה ״לאתר המלון״" type="url" dir="ltr" value={h.link} onChange={(v) => update((t) => { t.stops[si].hotels[hi].link = v; })} />
+                <Field label="כתובת" value={h.address} onChange={(v) => update((t) => { t.stops[si].hotels[hi].address = v; })} />
+                <HotelMedia hotel={h} set={(fn) => update((t) => { const x = t.stops[si].hotels[hi]; x.images = x.images || []; x.rooms = x.rooms || []; fn(x); })} />
                 <div className="swatches" role="radiogroup" aria-label="צבע">
                   {COLORS.map((c) => (
                     <button key={c} type="button" role="radio" aria-checked={h.color === c} aria-label={c}
@@ -91,7 +98,7 @@ export default function EditHotels({ trip, update, saved, action }) {
             {s.hotels.length < 6 && (
               <button type="button" className="hotel-add" onClick={() => update((t) => {
                 const hid = newId();
-                t.stops[si].hotels.push({ id: hid, name: "", stars: 4, description: "", tags: [], priceNote: "", link: "", imageUrl: "", color: COLORS[t.stops[si].hotels.length % COLORS.length] });
+                t.stops[si].hotels.push({ id: hid, name: "", stars: 4, description: "", tags: [], priceNote: "", link: "", imageUrl: "", address: "", images: [], rooms: [], photoPool: [], color: COLORS[t.stops[si].hotels.length % COLORS.length] });
                 if (!t.stops[si].pickId) t.stops[si].pickId = hid;
               })}>
                 <Icon name="plus" /> הוספת מלון

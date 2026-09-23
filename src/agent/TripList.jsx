@@ -5,14 +5,28 @@ import { range, todayIso } from "../dates.js";
 import { Link, navigate } from "../router.jsx";
 import { CopyButton, Icon, Loading, Notice } from "../ui.jsx";
 
-function status(t) {
+function when(t) {
   const today = todayIso();
   if (t.startDate && t.endDate && today >= t.startDate && today <= t.endDate) return { text: "בטיול עכשיו", kind: "sea" };
   if (t.endDate && today > t.endDate) return { text: "הסתיים", kind: "muted" };
-  if (!t.stopsCount) return { text: "אין עצירות עדיין", kind: "muted" };
-  if (t.hotelsConfirmedAt) return { text: "המלונות אושרו", kind: "ok" };
-  if (t.chosenCount) return { text: `נבחרו ${t.chosenCount} מתוך ${t.stopsCount}`, kind: "clay" };
-  return { text: "ממתין לבחירת מלונות", kind: "clay" };
+  return null;
+}
+
+function choice(label, total, chosen, confirmedAt) {
+  if (!total) return null;
+  if (confirmedAt) return { text: `${label} אושרו`, kind: "ok" };
+  if (chosen) return { text: `${label}: נבחרו ${chosen}/${total}`, kind: "clay" };
+  return { text: `${label}: ממתין`, kind: "clay" };
+}
+
+function statuses(t) {
+  const w = when(t);
+  if (w) return [w];
+  const list = [
+    choice("טיסות", t.flightGroupsCount, t.flightsChosenCount, t.flightsConfirmedAt),
+    choice("מלונות", t.stopsCount, t.chosenCount, t.hotelsConfirmedAt),
+  ].filter(Boolean);
+  return list.length ? list : [{ text: "בהכנה", kind: "muted" }];
 }
 
 export default function TripList() {
@@ -56,18 +70,18 @@ export default function TripList() {
       {trips && trips.length > 0 && (
         <table className="trips">
           <thead>
-            <tr><th>טיול</th><th>לקוח</th><th>תאריכים</th><th>קוד</th><th>מלונות</th><th><span className="sr-only">פעולות</span></th></tr>
+            <tr><th>טיול</th><th>לקוח</th><th>תאריכים</th><th>קוד</th><th>בחירות הלקוח</th><th><span className="sr-only">פעולות</span></th></tr>
           </thead>
           <tbody>
             {trips.map((t) => {
-              const s = status(t);
+
               return (
                 <tr key={t.id}>
                   <td><Link to={`/agent/trip/${t.id}`} className="trip-link">{t.title || "ללא שם"}</Link></td>
                   <td>{t.clientName}</td>
                   <td className="nowrap">{range(t.startDate, t.endDate)}</td>
                   <td className="mono nowrap" dir="ltr">{prettyCode(t.accessCode)}</td>
-                  <td><span className={`chip chip-${s.kind}`}>{s.text}</span></td>
+                  <td><div className="row">{statuses(t).map((s) => <span key={s.text} className={`chip chip-${s.kind}`}>{s.text}</span>)}</div></td>
                   <td className="row end">
                     <CopyButton text={inviteText(t)} label="הודעה ללקוח" />
                   </td>

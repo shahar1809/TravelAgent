@@ -3,36 +3,70 @@ import { range, nights, dayMonth } from "../dates.js";
 import { hotelsState } from "../trip.js";
 import { Icon, Notice, Stars } from "../ui.jsx";
 
+function Gallery({ hotel }) {
+  const images = hotel.images?.length ? hotel.images : hotel.imageUrl ? [hotel.imageUrl] : [];
+  if (!images.length) return null;
+  return (
+    <div className="gallery" tabIndex={images.length > 1 ? 0 : undefined} aria-label={images.length > 1 ? `${images.length} תמונות, גללו הצידה` : undefined}>
+      {images.map((u, i) => <img key={u} src={u} alt={i === 0 ? hotel.name : ""} loading="lazy" referrerPolicy="no-referrer" />)}
+      {images.length > 1 && <span className="gallery-count">{images.length} תמונות</span>}
+    </div>
+  );
+}
+
 function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
   const isPick = stop.pickId === hotel.id;
+  const inputId = `h-${stop.id}-${hotel.id}`;
+  const rooms = hotel.rooms || [];
+  const choose = () => { if (!locked && !busy && !selected) onPick(hotel.id); };
   return (
-    <label className={`hotel${selected ? " selected" : ""}${locked ? " locked" : ""}`}>
-      <input type="radio" name={`stop-${stop.id}`} checked={selected} disabled={locked || busy}
-        onChange={() => onPick(hotel.id)} className="sr-radio" />
+    <article className={`hotel${selected ? " selected" : ""}${locked ? " locked" : ""}`}
+      onClick={(e) => { if (!e.target.closest("a, details, input, label")) choose(); }}>
       <div className="hotel-media" style={{ background: hotel.color || "#2E5A5C" }}>
-        {hotel.imageUrl && <img src={hotel.imageUrl} alt="" loading="lazy" />}
+        <Gallery hotel={hotel} />
         {isPick && <span className="pick-badge">ההמלצה של {agentName}</span>}
       </div>
       <div className="hotel-body">
-        <div className="hotel-head">
+        <label className="hotel-head" htmlFor={inputId}>
+          <input id={inputId} type="radio" name={`stop-${stop.id}`} checked={selected} disabled={locked || busy}
+            onChange={choose} className="sr-radio" />
           <span className="radio-mark" aria-hidden="true">{selected && <Icon name="check" size={14} stroke={2.4} />}</span>
-          <span className="hotel-name">{hotel.name}</span>
-        </div>
+          <span className="hotel-name" dir="auto">{hotel.name}</span>
+        </label>
         <div className="hotel-meta">
           <Stars n={hotel.stars} />
           {hotel.priceNote && <span className="price-note">{hotel.priceNote}</span>}
         </div>
-        {hotel.description && <p className="hotel-desc">{hotel.description}</p>}
+        {hotel.address && <span className="muted small" dir="auto">{hotel.address}</span>}
+        {hotel.description && <p className="hotel-desc" dir="auto">{hotel.description}</p>}
         {hotel.tags.length > 0 && (
-          <ul className="tags">{hotel.tags.map((t) => <li key={t}>{t}</li>)}</ul>
+          <ul className="tags">{hotel.tags.map((t) => <li key={t} dir="auto">{t}</li>)}</ul>
+        )}
+        {rooms.length > 0 && (
+          <details className="rooms">
+            <summary>סוגי חדרים ({rooms.length})</summary>
+            <ul>
+              {rooms.map((r) => (
+                <li key={r.id} className="room">
+                  <span className="room-name" dir="auto">{r.name}</span>
+                  {r.description && <span className="muted small" dir="auto">{r.description}</span>}
+                  {r.images.length > 0 && (
+                    <div className="room-imgs">
+                      {r.images.map((u) => <img key={u} src={u} alt="" loading="lazy" referrerPolicy="no-referrer" />)}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
         {hotel.link && (
-          <a className="text-link" href={hotel.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+          <a className="text-link" href={hotel.link} target="_blank" rel="noreferrer">
             לאתר המלון <Icon name="external" size={14} />
           </a>
         )}
       </div>
-    </label>
+    </article>
   );
 }
 

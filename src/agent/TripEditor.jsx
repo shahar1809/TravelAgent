@@ -5,6 +5,7 @@ import { Link, navigate } from "../router.jsx";
 import { CopyButton, Icon, Loading, Notice } from "../ui.jsx";
 import EditDetails from "./EditDetails.jsx";
 import EditHotels from "./EditHotels.jsx";
+import EditFlights from "./EditFlights.jsx";
 import EditSchedule from "./EditSchedule.jsx";
 import EditPrep from "./EditPrep.jsx";
 import EditWallet from "./EditWallet.jsx";
@@ -12,6 +13,7 @@ import { inviteText } from "./invite.js";
 
 const TABS = [
   ["details", "פרטים", EditDetails],
+  ["flights", "טיסות", EditFlights],
   ["hotels", "מלונות", EditHotels],
   ["schedule", "לו״ז", EditSchedule],
   ["prep", "הכנות", EditPrep],
@@ -65,7 +67,7 @@ export default function TripEditor({ id }) {
     setMsg(null);
     try {
       const t = await api(`trips/${id}/${path}`, { method: "POST", body: body ?? {} });
-      const keep = { accessCode: t.accessCode, accessVersion: t.accessVersion, hotelsConfirmedAt: t.hotelsConfirmedAt };
+      const keep = { accessCode: t.accessCode, accessVersion: t.accessVersion, hotelsConfirmedAt: t.hotelsConfirmedAt, flightsConfirmedAt: t.flightsConfirmedAt };
       setSaved((s) => ({ ...s, ...keep }));
       setDraft((d) => ({ ...d, ...keep }));
       if (path === "code") setMsg({ kind: "ok", text: "הקוד עודכן. שלחי ללקוח את ההודעה החדשה." });

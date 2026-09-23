@@ -2,7 +2,7 @@ import { usePath } from "./router.jsx";
 import ClientApp from "./client/ClientApp.jsx";
 import AgentApp from "./agent/AgentApp.jsx";
 
-const CLIENT_SECTIONS = ["hotels", "schedule", "wallet"];
+const CLIENT_SECTIONS = ["flights", "hotels", "schedule", "wallet"];
 
 export default function App() {
   const path = usePath();

@@ -5,7 +5,7 @@ export function Field({ label, hint, value, onChange, type = "text", ...rest }) 
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <input id={id} type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />
+      <input id={id} type={type} dir="auto" value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />
       {hint && <span className="hint">{hint}</span>}
     </div>
   );
@@ -16,7 +16,7 @@ export function Area({ label, hint, value, onChange, rows = 3, ...rest }) {
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <textarea id={id} rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />
+      <textarea id={id} rows={rows} dir="auto" value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />
       {hint && <span className="hint">{hint}</span>}
     </div>
   );

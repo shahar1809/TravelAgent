@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getStore, getDeployStore } from "@netlify/blobs";
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { sampleTrip, blankTrip } from "./templates.mts";
+import { checkUrl, fetchPage, extract, draftHotel, polishWithClaude, type Snapshot } from "./importer.mts";
 
 // ---------- storage ----------
 function store(name: string) {
@@ -112,6 +113,8 @@ const str = (v: unknown, max = 2000) => (typeof v === "string" ? v.slice(0, max)
 const date = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
 const time = (v: unknown) => (typeof v === "string" && /^\d{2}:\d{2}$/.test(v) ? v : "");
 const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+const httpsUrl = (v: unknown) => (typeof v === "string" && /^https:\/\/\S+$/.test(v) ? v.slice(0, 1000) : "");
+const urls = (v: unknown, max: number) => arr(v).map(httpsUrl).filter(Boolean).slice(0, max);
 const id = (v: unknown) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : newId(4));
 
 // Accepts an agent-edited trip and keeps only known fields, in the right shape.
@@ -141,6 +144,48 @@ function cleanTrip(input: Trip): Trip {
         link: str(h.link, 500),
         imageUrl: str(h.imageUrl, 1000),
         color: str(h.color, 20),
+        address: str(h.address, 300),
+        images: urls(h.images, 5),
+        photoPool: urls(h.photoPool, 60),
+        rooms: arr(h.rooms).slice(0, 15).map((r: any) => ({
+          id: id(r.id),
+          sourceId: str(r.sourceId, 40),
+          name: str(r.name, 120),
+          description: str(r.description, 300),
+          images: urls(r.images, 2),
+          show: !!r.show,
+        })),
+      })),
+    })),
+    flightGroups: arr(input.flightGroups).slice(0, 6).map((g: any) => ({
+      id: id(g.id),
+      title: str(g.title, 80),
+      note: str(g.note, 500),
+      pickId: typeof g.pickId === "string" ? g.pickId : "",
+      options: arr(g.options).slice(0, 6).map((o: any) => ({
+        id: id(o.id),
+        title: str(o.title, 80),
+        cabin: str(o.cabin, 40),
+        baggage: str(o.baggage, 300),
+        fareNote: str(o.fareNote, 300),
+        priceNote: str(o.priceNote, 200),
+        note: str(o.note, 500),
+        segments: arr(o.segments).slice(0, 8).map((x: any) => ({
+          id: id(x.id),
+          leg: ["out", "back"].includes(x.leg) ? x.leg : "",
+          airline: str(x.airline, 80),
+          flightNumber: str(x.flightNumber, 20),
+          from: str(x.from, 4).toUpperCase(),
+          fromCity: str(x.fromCity, 60),
+          fromTerminal: str(x.fromTerminal, 20),
+          departDate: date(x.departDate),
+          departTime: time(x.departTime),
+          to: str(x.to, 4).toUpperCase(),
+          toCity: str(x.toCity, 60),
+          toTerminal: str(x.toTerminal, 20),
+          arriveDate: date(x.arriveDate),
+          arriveTime: time(x.arriveTime),
+        })),
       })),
     })),
     checklist: arr(input.checklist).slice(0, 60).map((c: any) => ({
@@ -184,7 +229,15 @@ function cleanTrip(input: Trip): Trip {
 async function clientView(trip: Trip) {
   const settings = await getSettings();
   const { agentNotes, accessCode, accessVersion, token, ...rest } = trip;
-  return { ...rest, agency: settings };
+  // Clients see only the room types she ticked, and never her photo pool.
+  const stops = arr(rest.stops).map((s: any) => ({
+    ...s,
+    hotels: arr(s.hotels).map(({ photoPool, ...h }: any) => ({
+      ...h,
+      rooms: arr(h.rooms).filter((r: any) => r.show).map(({ sourceId, show, ...r }: any) => r),
+    })),
+  }));
+  return { ...rest, stops, agency: settings };
 }
 
 function summary(t: Trip) {
@@ -199,6 +252,9 @@ function summary(t: Trip) {
     stopsCount: stops.length,
     chosenCount: stops.filter((s: any) => s.chosenId).length,
     hotelsConfirmedAt: t.hotelsConfirmedAt || null,
+    flightGroupsCount: arr(t.flightGroups).length,
+    flightsChosenCount: arr(t.flightGroups).filter((g: any) => g.chosenId).length,
+    flightsConfirmedAt: t.flightsConfirmedAt || null,
     updatedAt: t.updatedAt,
   };
 }
@@ -212,6 +268,7 @@ async function createTrip(kind: string) {
     accessVersion: 1,
     createdAt: new Date().toISOString(),
     hotelsConfirmedAt: null,
+    flightsConfirmedAt: null,
     done: {},
   };
   await saveTrip(trip);
@@ -238,6 +295,19 @@ function buildIcs(trip: Trip) {
     lines.push("BEGIN:VEVENT", `UID:stay-${s.id}@${trip.id}`, `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${icsDate(s.checkIn)}`, `DTEND;VALUE=DATE:${icsDate(s.checkOut)}`,
       `SUMMARY:${icsText(`לינה: ${hotel?.name || s.city}`)}`, `LOCATION:${icsText(s.city)}`, "TRANSP:TRANSPARENT", "END:VEVENT");
+  }
+  for (const g of arr(trip.flightGroups)) {
+    const opts = arr(g.options);
+    const o = opts.find((x: any) => x.id === g.chosenId) || (opts.length === 1 ? opts[0] : null);
+    for (const x of arr(o?.segments)) {
+      if (!x.departDate || !x.departTime) continue;
+      lines.push("BEGIN:VEVENT", `UID:flight-${x.id}@${trip.id}`, `DTSTAMP:${stamp}`,
+        `DTSTART:${icsDateTime(x.departDate, x.departTime)}`,
+        `DTEND:${icsDateTime(x.arriveDate || x.departDate, x.arriveTime || addHour(x.departTime))}`,
+        `SUMMARY:${icsText(`טיסה ${[x.airline, x.flightNumber].filter(Boolean).join(" ")}: ${x.fromCity || x.from} - ${x.toCity || x.to}`)}`,
+        `LOCATION:${icsText([x.from, x.fromTerminal ? `טרמינל ${x.fromTerminal}` : ""].filter(Boolean).join(" "))}`,
+        "END:VEVENT");
+    }
   }
   for (const i of arr(trip.items)) {
     if (!i.date) continue;
@@ -291,6 +361,24 @@ async function clientRoutes(req: Request, url: URL, rest: string[]) {
     return json(await clientView(trip));
   }
 
+  if (action === "choose-flight" && m === "POST") {
+    if (trip.flightsConfirmedAt) return fail(409, "הבחירה כבר אושרה. כדי לשנות, פנו לסוכנת.");
+    const { groupId, optionId } = await readJson(req);
+    const group = arr(trip.flightGroups).find((g: any) => g.id === groupId);
+    if (!group || !arr(group.options).some((o: any) => o.id === optionId)) return fail(400, "הטיסה שנבחרה לא נמצאה");
+    group.chosenId = optionId;
+    await saveTrip(trip);
+    return json(await clientView(trip));
+  }
+
+  if (action === "confirm-flights" && m === "POST") {
+    const missing = arr(trip.flightGroups).filter((g: any) => !g.chosenId);
+    if (missing.length) return fail(400, `עוד לא נבחרה טיסה: ${missing.map((g: any) => g.title || "טיסה").join(", ")}`);
+    trip.flightsConfirmedAt = new Date().toISOString();
+    await saveTrip(trip);
+    return json(await clientView(trip));
+  }
+
   if (action === "checklist" && m === "POST") {
     const { itemId, done } = await readJson(req);
     if (!arr(trip.checklist).some((c: any) => c.id === itemId)) return fail(400, "המשימה לא נמצאה");
@@ -339,6 +427,35 @@ async function agentRoutes(req: Request, seg: string[]) {
     }
   }
 
+  if (seg[0] === "import" && m === "POST") {
+    const body = await readJson(req);
+    const ai = !!Netlify.env.get("ANTHROPIC_API_KEY");
+    try {
+      if (seg[1] === "url") {
+        const u = checkUrl(str(body.url, 2000));
+        const snapshot = extract(await fetchPage(u), u.toString());
+        if (!snapshot.name && !snapshot.photos.length) return fail(422, "לא מצאתי פרטי מלון בדף הזה. בדקי שזה הקישור לדף של המלון עצמו.");
+        return json({ snapshot, hotel: draftHotel(snapshot), ai });
+      }
+      if (seg[1] === "html") {
+        const html = typeof body.html === "string" ? body.html : "";
+        if (html.length < 500) return fail(400, "ההדבקה ריקה. לחצי שוב על הסימנייה בדף המלון ואז הדביקי כאן.");
+        const snapshot = extract(html, httpsUrl(body.url));
+        if (!snapshot.name && !snapshot.photos.length) return fail(422, "לא מצאתי פרטי מלון במה שהודבק.");
+        return json({ snapshot, hotel: draftHotel(snapshot), ai });
+      }
+      if (seg[1] === "polish") {
+        const snapshot = body.snapshot as Snapshot;
+        if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.photos)) return fail(400, "חסרים נתונים");
+        return json(await polishWithClaude(snapshot, draftHotel(snapshot)));
+      }
+    } catch (e: any) {
+      if (e?.blocked) return json({ error: "Booking חסם את הקריאה האוטומטית מהשרת. השתמשי ב״ייבוא מהדפדפן״ שמתחת.", blocked: true }, 502);
+      return fail(400, e?.message || "הייבוא נכשל");
+    }
+    return fail(404, "לא נמצא");
+  }
+
   if (seg[0] !== "trips") return fail(404, "לא נמצא");
   const [, tripId, sub, subId] = seg;
 
@@ -370,6 +487,10 @@ async function agentRoutes(req: Request, seg: string[]) {
         const old = arr(trip.stops).find((o: any) => o.id === s.id);
         if (old?.chosenId && s.hotels.some((h: any) => h.id === old.chosenId)) s.chosenId = old.chosenId;
       }
+      for (const g of clean.flightGroups) {
+        const old = arr(trip.flightGroups).find((o: any) => o.id === g.id);
+        if (old?.chosenId && g.options.some((o: any) => o.id === old.chosenId)) (g as any).chosenId = old.chosenId;
+      }
       const updated = { ...trip, ...clean };
       await saveTrip(updated);
       return json(updated);
@@ -381,6 +502,12 @@ async function agentRoutes(req: Request, seg: string[]) {
       await trips().delete(`trip/${trip.id}`);
       return json({ ok: true });
     }
+  }
+
+  if (sub === "unlock-flights" && m === "POST") {
+    trip.flightsConfirmedAt = null;
+    await saveTrip(trip);
+    return json(trip);
   }
 
   if (sub === "unlock" && m === "POST") {

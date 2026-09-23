@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { diffDays, range, todayIso, nights, shortDate } from "../dates.js";
 import { hotelsState } from "../trip.js";
+import { flightsState } from "../flights.js";
 import { Link } from "../router.jsx";
 import { Notice } from "../ui.jsx";
 
@@ -58,6 +59,13 @@ export default function Prepare({ trip, act, base }) {
 
       {trip.intro && <p className="intro">{trip.intro}</p>}
 
+      {flightsState(trip).total > 0 && !trip.flightsConfirmedAt && (
+        <section className="card card-action">
+          <h2 className="display h2">{flightsState(trip).chosen ? "נשאר לאשר את הטיסות" : "בחרו טיסה"}</h2>
+          <p className="muted">{(trip.flightGroups || []).map((g) => `${(g.options || []).length} אפשרויות ל${g.title || "טיסה"}`).join(", ")}</p>
+          <Link to="/flights" className="btn btn-primary btn-block">לבחירת טיסה</Link>
+        </section>
+      )}
       {hs.total > 0 && !hs.confirmed && (
         <section className="card card-action">
           <h2 className="display h2">{hs.chosen === 0 ? "בחרו מלון בכל עצירה" : `נבחרו ${hs.chosen} מתוך ${hs.total} מלונות`}</h2>

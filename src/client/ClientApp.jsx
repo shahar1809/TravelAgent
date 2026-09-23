@@ -5,11 +5,14 @@ import { Icon, Loading, Notice } from "../ui.jsx";
 import CodeScreen from "./CodeScreen.jsx";
 import Prepare from "./Prepare.jsx";
 import Hotels from "./Hotels.jsx";
+import Flights from "./Flights.jsx";
+import { flightsState } from "../flights.js";
 import Schedule from "./Schedule.jsx";
 import Wallet from "./Wallet.jsx";
 
 const TABS = [
   { key: "", label: "הכנות", icon: "checklist", Page: Prepare },
+  { key: "flights", label: "טיסות", icon: "plane", Page: Flights },
   { key: "hotels", label: "מלונות", icon: "bed", Page: Hotels },
   { key: "schedule", label: "לו״ז", icon: "calendar", Page: Schedule },
   { key: "wallet", label: "ארנק", icon: "ticket", Page: Wallet },
@@ -80,7 +83,10 @@ export default function ClientApp({ section }) {
 
   const tab = TABS.find((t) => t.key === section) || TABS[0];
   const agency = trip.agency || {};
-  const pendingHotels = trip.stops.length > 0 && !trip.hotelsConfirmedAt;
+  const pending = {
+    hotels: trip.stops.length > 0 && !trip.hotelsConfirmedAt,
+    flights: flightsState(trip).total > 0 && !trip.flightsConfirmedAt,
+  };
 
   return (
     <div className="client-shell">
@@ -107,7 +113,7 @@ export default function ClientApp({ section }) {
             <Link key={t.key} to={to} className={`tab${on ? " on" : ""}`} aria-current={on ? "page" : undefined}>
               <span className="tab-icon">
                 <Icon name={t.icon} size={22} />
-                {t.key === "hotels" && pendingHotels && <span className="dot" aria-label="ממתין לבחירה" />}
+                {pending[t.key] && <span className="dot" aria-label="ממתין לבחירה" />}
               </span>
               <span>{t.label}</span>
             </Link>

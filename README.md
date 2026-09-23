@@ -2,7 +2,7 @@
 
 A Hebrew (RTL) web app for a travel agent and her clients, running on Netlify.
 
-- **Back office** (`/agent`): trips, hotel options per stop, day-by-day schedule, getting-ready checklist, vouchers.
+- **Back office** (`/agent`): trips, flight options, hotel options per stop, day-by-day schedule, getting-ready checklist, vouchers.
 - **Client app** (the site's main address): travelers enter their trip code once, then choose one hotel per stop, and get the getting-ready checklist, calendar and daily view, and wallet.
 - No payments anywhere.
 
@@ -30,6 +30,27 @@ Stack: React + Vite, one Netlify Function (`netlify/functions/api`), Netlify Blo
 - After the client confirms hotels, the choice is locked. **פתיחה מחדש לשינויים** unlocks it.
 - Vouchers accept PDF or images up to 10MB.
 - Check-in / check-out entries on the schedule come automatically from the stops' dates and the chosen hotel.
+
+## Flights
+
+The **טיסות** tab works like hotels:
+
+- A **flight choice** (usually "הלוך ושוב") holds up to 6 **options**. She marks one as her recommendation; the client picks one and confirms, which locks it (**פתיחה מחדש לשינויים** unlocks).
+- Each option has a name, cabin, baggage, change/cancellation terms, a price note, and its **flights**: direction (הלוך/חזור), airline, flight number, departure and landing airport, city, terminal, date and time. Typing an airport code fills in the Hebrew city for common airports.
+- Connections show the waiting time automatically, and landings after midnight show +1.
+- **שכפול** copies an option, which is the fastest way to build alternatives.
+- The chosen flight (or her recommendation until the client chooses) appears in the client's daily schedule and calendar export. Flight entries no longer need to be added in the schedule tab.
+
+## Importing hotels from Booking
+
+In **מלונות**, every hotel option has an import box:
+
+- **Paste a link → מילוי אוטומטי.** Fills the name, stars, description, amenity tags, address, link, 5 general photos and the room types (2 photos each). The price note is never touched.
+- **Room types** arrive unticked. Tick **להציג ללקוח** on the ones the client should see. Photos can be swapped from all the photos found on the page.
+- **If Booking blocks the server** (it often blocks automated requests), use **ייבוא מהדפדפן**: drag the bookmark button to the browser's bookmarks bar once, click it on the hotel's Booking page, then paste into the app.
+- **Hebrew text:** add an `ANTHROPIC_API_KEY` environment variable and the description, tags and room names are rewritten in Hebrew (Claude Haiku, about one cent per hotel). Without it, text comes in the page's language (Booking's Hebrew page is requested first).
+- Optional `SCRAPER_URL` (e.g. `https://api.scraperapi.com/?api_key=KEY&url={url}`) routes link imports through a scraping service if direct requests keep getting blocked.
+- Photos are shown from Booking's servers, not copied. They belong to the hotel or Booking; fine for showing clients, not for public marketing.
 
 ## Offline
 

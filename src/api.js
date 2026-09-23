@@ -48,6 +48,7 @@ export async function api(path, { method = "GET", body, file } = {}) {
   if (!res.ok) {
     const err = new Error(data.error || "משהו השתבש. נסו שוב.");
     err.status = res.status;
+    err.data = data;
     throw err;
   }
   return data;

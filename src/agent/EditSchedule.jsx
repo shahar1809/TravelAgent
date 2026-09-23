@@ -39,7 +39,7 @@ export default function EditSchedule({ trip, update }) {
 
   return (
     <div className="stack-lg">
-      <p className="muted">הצ׳ק־אין והצ׳ק־אאוט במלונות נוספים אוטומטית לפי העצירות. כאן מוסיפים את כל השאר.</p>
+      <p className="muted">טיסות, צ׳ק־אין וצ׳ק־אאוט נוספים אוטומטית מלשוניות ״טיסות״ ו״מלונות״. כאן מוסיפים את כל השאר.</p>
       <div className="item-legend" aria-hidden="true">
         <span>שעה</span><span>עד</span><span>סוג</span><span>כותרת</span><span>מקום</span><span>הערה</span><span>מפה</span><span>תאריך</span><span />
       </div>

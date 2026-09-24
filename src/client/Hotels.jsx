@@ -2,17 +2,7 @@ import { useState } from "react";
 import { range, nights, dayMonth } from "../dates.js";
 import { hotelsState } from "../trip.js";
 import { Icon, Notice, Stars } from "../ui.jsx";
-
-function Gallery({ hotel }) {
-  const images = hotel.images?.length ? hotel.images : hotel.imageUrl ? [hotel.imageUrl] : [];
-  if (!images.length) return null;
-  return (
-    <div className="gallery" tabIndex={images.length > 1 ? 0 : undefined} aria-label={images.length > 1 ? `${images.length} תמונות, גללו הצידה` : undefined}>
-      {images.map((u, i) => <img key={u} src={u} alt={i === 0 ? hotel.name : ""} loading="lazy" referrerPolicy="no-referrer" />)}
-      {images.length > 1 && <span className="gallery-count">{images.length} תמונות</span>}
-    </div>
-  );
-}
+import { Gallery, Thumbs } from "./Photos.jsx";
 
 function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
   const isPick = stop.pickId === hotel.id;
@@ -21,9 +11,9 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
   const choose = () => { if (!locked && !busy && !selected) onPick(hotel.id); };
   return (
     <article className={`hotel${selected ? " selected" : ""}${locked ? " locked" : ""}`}
-      onClick={(e) => { if (!e.target.closest("a, details, input, label")) choose(); }}>
+      onClick={(e) => { if (!e.target.closest("a, button, details, input, label, dialog")) choose(); }}>
       <div className="hotel-media" style={{ background: hotel.color || "#2E5A5C" }}>
-        <Gallery hotel={hotel} />
+        <Gallery images={hotel.images?.length ? hotel.images : hotel.imageUrl ? [hotel.imageUrl] : []} title={hotel.name} />
         {isPick && <span className="pick-badge">ההמלצה של {agentName}</span>}
       </div>
       <div className="hotel-body">
@@ -50,11 +40,7 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
                 <li key={r.id} className="room">
                   <span className="room-name" dir="auto">{r.name}</span>
                   {r.description && <span className="muted small" dir="auto">{r.description}</span>}
-                  {r.images.length > 0 && (
-                    <div className="room-imgs">
-                      {r.images.map((u) => <img key={u} src={u} alt="" loading="lazy" referrerPolicy="no-referrer" />)}
-                    </div>
-                  )}
+                  <Thumbs images={r.images} title={r.name} />
                 </li>
               ))}
             </ul>

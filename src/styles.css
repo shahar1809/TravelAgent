@@ -537,3 +537,8 @@ p { margin: 0; }
   .seg-grid > .small-btn { grid-column: auto; }
   .seg-side { grid-column: 1 / -1; }
 }
+
+/* collapsible hotel description */
+.more { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.hotel-desc.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.more-btn { min-height: 32px; }

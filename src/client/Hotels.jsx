@@ -1,8 +1,34 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { range, nights, dayMonth } from "../dates.js";
 import { hotelsState } from "../trip.js";
 import { Icon, Notice, Stars } from "../ui.jsx";
 import { Gallery, Thumbs } from "./Photos.jsx";
+
+// Description shows two lines; "קראו עוד" opens the rest (only when there is more).
+function MoreText({ text }) {
+  const ref = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [long, setLong] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setLong(el.scrollHeight > el.clientHeight + 2);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text]);
+  return (
+    <div className="more">
+      <p ref={ref} className={`hotel-desc${open ? "" : " clamp"}`} dir="auto">{text}</p>
+      {(long || open) && (
+        <button type="button" className="text-link small more-btn" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? "פחות" : "קראו עוד"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
   const isPick = stop.pickId === hotel.id;
@@ -28,7 +54,7 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
           {hotel.priceNote && <span className="price-note">{hotel.priceNote}</span>}
         </div>
         {hotel.address && <span className="muted small" dir="auto">{hotel.address}</span>}
-        {hotel.description && <p className="hotel-desc" dir="auto">{hotel.description}</p>}
+        {hotel.description && <MoreText text={hotel.description} />}
         {hotel.tags.length > 0 && (
           <ul className="tags">{hotel.tags.map((t) => <li key={t} dir="auto">{t}</li>)}</ul>
         )}

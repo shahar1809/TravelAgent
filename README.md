@@ -43,13 +43,12 @@ The **טיסות** tab works like hotels:
 
 ## Importing hotels from Booking
 
-In **מלונות**, every hotel option has an import box:
+In **מלונות**, every hotel option has an import box. Booking blocks automated reading, so import runs from her own browser:
 
-- **Paste a link → מילוי אוטומטי.** Fills the name, stars, description, amenity tags, address, link, 5 general photos and the room types (2 photos each). The price note is never touched.
+- **Once:** open **איך זה עובד?** in the import box and drag the bookmark button to the browser's bookmarks bar.
+- **Each hotel:** open the hotel's Booking page (with dates chosen, so the rooms table loads), click the bookmark, come back and paste into the box. It fills the name, stars, description, amenity tags, address, link, 5 general photos and the room types (2 photos each). The price note is never touched.
 - **Room types** arrive unticked. Tick **להציג ללקוח** on the ones the client should see. Photos can be swapped from all the photos found on the page.
-- **If Booking blocks the server** (it often blocks automated requests), use **ייבוא מהדפדפן**: drag the bookmark button to the browser's bookmarks bar once, click it on the hotel's Booking page, then paste into the app.
-- **Hebrew text:** add an `ANTHROPIC_API_KEY` environment variable and the description, tags and room names are rewritten in Hebrew (Claude Haiku, about one cent per hotel). Without it, text comes in the page's language (Booking's Hebrew page is requested first).
-- Optional `SCRAPER_URL` (e.g. `https://api.scraperapi.com/?api_key=KEY&url={url}`) routes link imports through a scraping service if direct requests keep getting blocked.
+- **Hebrew text:** add an `ANTHROPIC_API_KEY` environment variable and the description, tags and room names are rewritten in Hebrew (Claude Haiku, about one cent per hotel). Without it, text comes in the page's language.
 - Photos are shown from Booking's servers, not copied. They belong to the hotel or Booking; fine for showing clients, not for public marketing.
 
 ## Offline

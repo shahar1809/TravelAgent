@@ -567,3 +567,4 @@ p { margin: 0; }
 .rooms-toggle .muted { flex: 1; }
 .rooms-toggle:hover { border-color: var(--ink); }
 .stay-cont { margin-inline-start: auto; }
+.paste-zone { width: 100%; gap: 6px; padding: 8px 12px; text-align: center; font-weight: 600; }

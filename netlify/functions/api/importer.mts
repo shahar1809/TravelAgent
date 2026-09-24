@@ -16,45 +16,6 @@ export type Snapshot = {
 const clean = (s: unknown) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim() : "");
 const uniq = <T,>(arr: T[]) => [...new Set(arr)];
 
-// ---------- fetching ----------
-export function checkUrl(raw: string) {
-  let u: URL;
-  try {
-    u = new URL(raw.trim());
-  } catch {
-    throw new Error("זה לא נראה כמו קישור. הדביקי את הקישור המלא לדף המלון.");
-  }
-  const host = u.hostname.toLowerCase();
-  if (u.protocol !== "https:" || host === "localhost" || /^[\d.]+$/.test(host) || host.includes(":") || host.endsWith(".internal") || host.endsWith(".local")) {
-    throw new Error("אפשר לייבא רק מקישור https רגיל של אתר מלונות.");
-  }
-  if (/(^|\.)booking\.com$/.test(host)) u.searchParams.set("lang", "he"); // Booking's Hebrew page
-  return u;
-}
-
-export async function fetchPage(u: URL) {
-  const template = Netlify.env.get("SCRAPER_URL"); // optional proxy, e.g. https://api.scraperapi.com/?api_key=KEY&url={url}
-  const target = template ? template.replace("{url}", encodeURIComponent(u.toString())) : u.toString();
-  let res: Response;
-  try {
-    res = await fetch(target, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(8500),
-      headers: {
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36",
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "accept-language": "he-IL,he;q=0.9,en;q=0.8",
-      },
-    });
-  } catch {
-    throw Object.assign(new Error("האתר לא ענה בזמן."), { blocked: true });
-  }
-  const html = await res.text();
-  const looksBlocked = !res.ok || html.length < 4000 || /awswaf|px-captcha|challenge-platform|captcha-delivery/i.test(html.slice(0, 20000));
-  if (looksBlocked) throw Object.assign(new Error("האתר חסם את הקריאה האוטומטית."), { blocked: true });
-  return html;
-}
-
 // ---------- extraction ----------
 function findLodging(root: HTMLElement) {
   for (const s of root.querySelectorAll('script[type="application/ld+json"]')) {

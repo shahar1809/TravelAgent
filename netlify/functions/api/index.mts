@@ -2,7 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getStore, getDeployStore } from "@netlify/blobs";
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { sampleTrip, blankTrip } from "./templates.mts";
-import { checkUrl, fetchPage, extract, draftHotel, polishWithClaude, type Snapshot } from "./importer.mts";
+import { extract, draftHotel, polishWithClaude, type Snapshot } from "./importer.mts";
 
 // ---------- storage ----------
 function store(name: string) {
@@ -431,12 +431,6 @@ async function agentRoutes(req: Request, seg: string[]) {
     const body = await readJson(req);
     const ai = !!Netlify.env.get("ANTHROPIC_API_KEY");
     try {
-      if (seg[1] === "url") {
-        const u = checkUrl(str(body.url, 2000));
-        const snapshot = extract(await fetchPage(u), u.toString());
-        if (!snapshot.name && !snapshot.photos.length) return fail(422, "לא מצאתי פרטי מלון בדף הזה. בדקי שזה הקישור לדף של המלון עצמו.");
-        return json({ snapshot, hotel: draftHotel(snapshot), ai });
-      }
       if (seg[1] === "html") {
         const html = typeof body.html === "string" ? body.html : "";
         if (html.length < 500) return fail(400, "ההדבקה ריקה. לחצי שוב על הסימנייה בדף המלון ואז הדביקי כאן.");
@@ -450,7 +444,6 @@ async function agentRoutes(req: Request, seg: string[]) {
         return json(await polishWithClaude(snapshot, draftHotel(snapshot)));
       }
     } catch (e: any) {
-      if (e?.blocked) return json({ error: "Booking חסם את הקריאה האוטומטית מהשרת. השתמשי ב״ייבוא מהדפדפן״ שמתחת.", blocked: true }, 502);
       return fail(400, e?.message || "הייבוא נכשל");
     }
     return fail(404, "לא נמצא");

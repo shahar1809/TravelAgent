@@ -18,7 +18,8 @@ function months(start, end) {
   return out;
 }
 
-const STAY_COLORS = ["#2E5A5C", "#C8923A", "#6B7248", "#B5502F", "#6E9A9B", "#8E5A2E"];
+// One distinct color per location, in trip order.
+const STAY_COLORS = ["#2E5A5C", "#C8923A", "#B5502F", "#6B7248", "#7A5C9E", "#3F7FA6", "#A8456B", "#8E5A2E"];
 
 // Stays as half-day ranges from the trip start: on a move day the old place gets the morning, the new one the afternoon.
 function stayRanges(trip) {
@@ -26,10 +27,9 @@ function stayRanges(trip) {
   return stops.map((s, i) => {
     const moveIn = stops.some((o) => o !== s && o.checkOut === s.checkIn);
     const moveOut = stops.some((o) => o !== s && o.checkIn === s.checkOut);
-    const hotel = stopHotel(s);
     return {
       id: s.id, city: s.city, checkIn: s.checkIn, nights: diffDays(s.checkIn, s.checkOut),
-      color: hotel?.color || STAY_COLORS[i % STAY_COLORS.length],
+      color: STAY_COLORS[i % STAY_COLORS.length],
       start: diffDays(trip.startDate, s.checkIn) * 2 + (moveIn ? 1 : 0),
       end: diffDays(trip.startDate, s.checkOut) * 2 + (moveOut ? 0 : 1),
     };
@@ -61,9 +61,10 @@ function StayLane({ week, inMonth, trip, ranges, onSelect }) {
       <button key={r.id} type="button" className={`stay-bar${startsHere ? " starts" : ""}${endsHere ? " ends" : ""}`}
         style={{ gridColumn: `${from} / ${to}`, "--stay": r.color }}
         onClick={() => onSelect(r.checkIn)} aria-label={`${r.city}, ${r.nights} לילות. מעבר ליום הראשון`}>
-        {to - from > 4 && (startsHere ? <Icon name="pin" size={12} /> : <Icon name="back" size={12} />)}
+        {startsHere && to - from > 4 && <Icon name="pin" size={12} />}
         <span className="stay-name">{r.city}</span>
         {startsHere && to - from >= 12 && <span className="stay-nights">{r.nights} לילות</span>}
+        {!startsHere && to - from > 4 && <Icon name="forward" size={12} className="stay-cont" />}
       </button>,
     );
   }

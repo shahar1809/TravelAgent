@@ -4,11 +4,13 @@ import { hotelsState } from "../trip.js";
 import { Icon, Notice, Stars } from "../ui.jsx";
 import { Gallery, Thumbs } from "./Photos.jsx";
 
-// Description shows two lines; "קראו עוד" opens the rest (only when there is more).
-function MoreText({ text }) {
+// Collapsed: two lines of description. "קראו עוד" opens the full text, amenity tags and room types.
+function HotelMore({ hotel }) {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
   const [long, setLong] = useState(false);
+  const rooms = hotel.rooms || [];
+  const tags = hotel.tags || [];
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -17,13 +19,35 @@ function MoreText({ text }) {
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [text]);
+  }, [hotel.description]);
+  const hasMore = long || tags.length > 0 || rooms.length > 0;
+  const moreId = `more-${hotel.id}`;
+  if (!hotel.description && !hasMore) return null;
   return (
     <div className="more">
-      <p ref={ref} className={`hotel-desc${open ? "" : " clamp"}`} dir="auto">{text}</p>
-      {(long || open) && (
-        <button type="button" className="text-link small more-btn" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {open ? "פחות" : "קראו עוד"}
+      {hotel.description && <p ref={ref} className={`hotel-desc${open ? "" : " clamp"}`} dir="auto">{hotel.description}</p>}
+      {open && (
+        <div id={moreId} className="more-body">
+          {tags.length > 0 && <ul className="tags">{tags.map((t) => <li key={t} dir="auto">{t}</li>)}</ul>}
+          {rooms.length > 0 && (
+            <section className="rooms">
+              <h4 className="rooms-title">סוגי חדרים</h4>
+              <ul>
+                {rooms.map((r) => (
+                  <li key={r.id} className="room">
+                    <span className="room-name" dir="auto">{r.name}</span>
+                    {r.description && <span className="muted small" dir="auto">{r.description}</span>}
+                    <Thumbs images={r.images} title={r.name} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
+      {hasMore && (
+        <button type="button" className="text-link small more-btn" aria-expanded={open} aria-controls={moreId} onClick={() => setOpen(!open)}>
+          {open ? "פחות" : rooms.length ? `קראו עוד · ${rooms.length} סוגי חדרים` : "קראו עוד"}
         </button>
       )}
     </div>
@@ -33,7 +57,6 @@ function MoreText({ text }) {
 function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
   const isPick = stop.pickId === hotel.id;
   const inputId = `h-${stop.id}-${hotel.id}`;
-  const rooms = hotel.rooms || [];
   const choose = () => { if (!locked && !busy && !selected) onPick(hotel.id); };
   return (
     <article className={`hotel${selected ? " selected" : ""}${locked ? " locked" : ""}`}
@@ -54,24 +77,7 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
           {hotel.priceNote && <span className="price-note">{hotel.priceNote}</span>}
         </div>
         {hotel.address && <span className="muted small" dir="auto">{hotel.address}</span>}
-        {hotel.description && <MoreText text={hotel.description} />}
-        {hotel.tags.length > 0 && (
-          <ul className="tags">{hotel.tags.map((t) => <li key={t} dir="auto">{t}</li>)}</ul>
-        )}
-        {rooms.length > 0 && (
-          <details className="rooms">
-            <summary>סוגי חדרים ({rooms.length})</summary>
-            <ul>
-              {rooms.map((r) => (
-                <li key={r.id} className="room">
-                  <span className="room-name" dir="auto">{r.name}</span>
-                  {r.description && <span className="muted small" dir="auto">{r.description}</span>}
-                  <Thumbs images={r.images} title={r.name} />
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <HotelMore hotel={hotel} />
         {hotel.link && (
           <a className="text-link" href={hotel.link} target="_blank" rel="noreferrer">
             לאתר המלון <Icon name="external" size={14} />

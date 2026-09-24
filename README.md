@@ -41,6 +41,15 @@ The **טיסות** tab works like hotels:
 - **שכפול** copies an option, which is the fastest way to build alternatives.
 - The chosen flight (or her recommendation until the client chooses) appears in the client's daily schedule and calendar export. Flight entries no longer need to be added in the schedule tab.
 
+## Hotel bank
+
+**מאגר מלונות** (in the side menu) keeps the hotels she recommends again and again, in destination folders grouped by country (for example איטליה → סיציליה).
+
+- **Add to the bank:** from the bank page (paste from Booking or fill in by hand), or from any hotel inside a trip with **הוספה למאגר**, which asks for a folder (existing or new) and a location. Pasting a Booking page that is already in the bank updates it instead of adding a duplicate.
+- **Use in a trip:** each stop has **בחירה מהמאגר**. It opens the folder matching the stop's city, lists hotels from that city first, and adds several at once. Photos, room types and "show to client" choices come along; the price note starts empty.
+- **Copies, not links:** editing a hotel in a trip doesn't change the bank. **עדכון במאגר** on that hotel pushes the edits back.
+- Each bank hotel shows how many times clients chose it (counted when a client confirms hotels), and the bank sorts by that.
+
 ## Importing hotels from Booking
 
 In **מלונות**, every hotel option has an import box. Booking blocks automated reading, so import runs from her own browser:

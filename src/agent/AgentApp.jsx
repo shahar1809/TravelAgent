@@ -6,6 +6,7 @@ import Login from "./Login.jsx";
 import TripList from "./TripList.jsx";
 import TripEditor from "./TripEditor.jsx";
 import Settings from "./Settings.jsx";
+import Bank from "./Bank.jsx";
 
 export default function AgentApp({ path }) {
   const [token, setToken] = useState(auth.get());
@@ -29,10 +30,11 @@ export default function AgentApp({ path }) {
   let page;
   if (parts[1] === "trip" && parts[2]) page = <TripEditor key={parts[2]} id={parts[2]} />;
   else if (parts[1] === "settings") page = <Settings settings={settings} onSaved={setSettings} />;
+  else if (parts[1] === "bank") page = <Bank />;
   else page = <TripList />;
 
   const logout = () => { auth.clear(); setToken(null); navigate("/agent"); };
-  const onTrips = parts[1] !== "settings";
+  const section = parts[1] === "settings" ? "settings" : parts[1] === "bank" ? "bank" : "trips";
 
   return (
     <div className="agent-shell">
@@ -42,10 +44,13 @@ export default function AgentApp({ path }) {
           <span>{settings?.agencyName || "ניהול טיולים"}</span>
         </div>
         <nav className="side-nav" aria-label="ניהול">
-          <Link to="/agent" className={onTrips ? "on" : ""} aria-current={onTrips ? "page" : undefined}>
+          <Link to="/agent" className={section === "trips" ? "on" : ""} aria-current={section === "trips" ? "page" : undefined}>
             <Icon name="suitcase" size={18} /> טיולים
           </Link>
-          <Link to="/agent/settings" className={!onTrips ? "on" : ""} aria-current={!onTrips ? "page" : undefined}>
+          <Link to="/agent/bank" className={section === "bank" ? "on" : ""} aria-current={section === "bank" ? "page" : undefined}>
+            <Icon name="bed" size={18} /> מאגר מלונות
+          </Link>
+          <Link to="/agent/settings" className={section === "settings" ? "on" : ""} aria-current={section === "settings" ? "page" : undefined}>
             <Icon name="settings" size={18} /> הגדרות
           </Link>
         </nav>

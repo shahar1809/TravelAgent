@@ -568,3 +568,49 @@ p { margin: 0; }
 .rooms-toggle:hover { border-color: var(--ink); }
 .stay-cont { margin-inline-start: auto; }
 .paste-zone { width: 100%; gap: 6px; padding: 8px 12px; text-align: center; font-weight: 600; }
+
+/* ---------- dialogs ---------- */
+.dlg { width: min(560px, 94vw); max-height: 88vh; border: none; border-radius: 12px; padding: 0; background: var(--card); color: var(--ink); }
+.dlg.wide { width: min(880px, 96vw); }
+.dlg::backdrop { background: rgba(31, 42, 36, 0.55); }
+.dlg[open] { display: flex; flex-direction: column; }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.dlg-body { padding: 16px 18px; overflow-y: auto; }
+.dlg-foot { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--line); }
+.dlg-foot .grow { flex: 1; }
+.btn-sm { min-height: 34px; padding: 0 10px; font-size: 0.85rem; }
+
+/* ---------- hotel bank ---------- */
+.search { min-height: 44px; width: 240px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--card); }
+.bank-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .bank-layout { grid-template-columns: minmax(0, 1fr); } }
+.bank-folders { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 16px; }
+.fold-group { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.fold-country { font-size: 0.75rem; color: var(--muted); padding: 0 10px 2px; }
+.fold { display: flex; justify-content: space-between; align-items: center; min-height: 38px; padding: 0 10px; border: none; border-radius: 6px; background: none; cursor: pointer; text-align: start; }
+.fold:hover { background: var(--paper); }
+.fold.on { background: var(--ink); color: var(--card); font-weight: 600; }
+.fold.on .muted { color: var(--sand); }
+.bank-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.bank-card { display: flex; flex-direction: column; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; cursor: pointer; text-align: start; }
+.bank-card:hover { border-color: var(--ink); }
+.bank-cover { height: 110px; display: block; }
+.bank-cover img { width: 100%; height: 100%; object-fit: cover; }
+.bank-card-body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; }
+.bank-name { font-weight: 700; line-height: 1.3; }
+.bank-card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.bank-card .tag { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: var(--sand); }
+.bank-card.add { align-items: center; justify-content: center; gap: 4px; min-height: 220px; border-style: dashed; border-width: 1.5px; border-color: var(--line-strong); background: transparent; font-weight: 600; }
+.bank-form { display: flex; flex-direction: column; gap: 12px; }
+.picker-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.picker-bar select, .picker-bar input { min-height: 42px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--paper); }
+.picker-bar input { flex: 1; }
+.bank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bank-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.bank-row.on { border: 2px solid var(--ink); padding: 7px; }
+.bank-row.off { opacity: 0.5; cursor: default; }
+.bank-row input { width: 20px; height: 20px; accent-color: var(--ink); }
+.bank-thumb { width: 64px; height: 48px; border-radius: 6px; overflow: hidden; display: block; }
+.bank-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.bank-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.empty-pick { padding: 24px 0; text-align: center; }

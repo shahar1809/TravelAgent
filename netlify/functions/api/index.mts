@@ -117,6 +117,33 @@ const httpsUrl = (v: unknown) => (typeof v === "string" && /^https:\/\/\S+$/.tes
 const urls = (v: unknown, max: number) => arr(v).map(httpsUrl).filter(Boolean).slice(0, max);
 const id = (v: unknown) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : newId(4));
 
+// One hotel option (in a trip or in the bank).
+function cleanHotel(h: any) {
+  return {
+    id: id(h.id),
+    bankId: typeof h.bankId === "string" ? h.bankId.slice(0, 40) : "",
+    name: str(h.name, 200),
+    stars: Math.max(0, Math.min(5, Number(h.stars) || 0)),
+    description: str(h.description, 2000),
+    tags: arr(h.tags).map((t: unknown) => str(t, 60)).filter(Boolean).slice(0, 8),
+    priceNote: str(h.priceNote, 200),
+    link: str(h.link, 500),
+    imageUrl: str(h.imageUrl, 1000),
+    color: str(h.color, 20),
+    address: str(h.address, 300),
+    images: urls(h.images, 5),
+    photoPool: urls(h.photoPool, 60),
+    rooms: arr(h.rooms).slice(0, 15).map((r: any) => ({
+      id: id(r.id),
+      sourceId: str(r.sourceId, 40),
+      name: str(r.name, 120),
+      description: str(r.description, 300),
+      images: urls(r.images, 2),
+      show: !!r.show,
+    })),
+  };
+}
+
 // Accepts an agent-edited trip and keeps only known fields, in the right shape.
 function cleanTrip(input: Trip): Trip {
   return {
@@ -134,28 +161,7 @@ function cleanTrip(input: Trip): Trip {
       checkOut: date(s.checkOut),
       note: str(s.note, 1000),
       pickId: typeof s.pickId === "string" ? s.pickId : "",
-      hotels: arr(s.hotels).slice(0, 6).map((h: any) => ({
-        id: id(h.id),
-        name: str(h.name, 200),
-        stars: Math.max(0, Math.min(5, Number(h.stars) || 0)),
-        description: str(h.description, 2000),
-        tags: arr(h.tags).map((t: unknown) => str(t, 60)).filter(Boolean).slice(0, 8),
-        priceNote: str(h.priceNote, 200),
-        link: str(h.link, 500),
-        imageUrl: str(h.imageUrl, 1000),
-        color: str(h.color, 20),
-        address: str(h.address, 300),
-        images: urls(h.images, 5),
-        photoPool: urls(h.photoPool, 60),
-        rooms: arr(h.rooms).slice(0, 15).map((r: any) => ({
-          id: id(r.id),
-          sourceId: str(r.sourceId, 40),
-          name: str(r.name, 120),
-          description: str(r.description, 300),
-          images: urls(r.images, 2),
-          show: !!r.show,
-        })),
-      })),
+      hotels: arr(s.hotels).slice(0, 6).map(cleanHotel),
     })),
     flightGroups: arr(input.flightGroups).slice(0, 6).map((g: any) => ({
       id: id(g.id),
@@ -232,7 +238,7 @@ async function clientView(trip: Trip) {
   // Clients see only the room types she ticked, and never her photo pool.
   const stops = arr(rest.stops).map((s: any) => ({
     ...s,
-    hotels: arr(s.hotels).map(({ photoPool, ...h }: any) => ({
+    hotels: arr(s.hotels).map(({ photoPool, bankId, ...h }: any) => ({
       ...h,
       rooms: arr(h.rooms).filter((r: any) => r.show).map(({ sourceId, show, ...r }: any) => r),
     })),
@@ -274,6 +280,145 @@ async function createTrip(kind: string) {
   await saveTrip(trip);
   await trips().set(`code/${trip.accessCode}`, trip.id);
   return trip;
+}
+
+// ---------- hotel bank ----------
+// "bank/index": folders + a short summary of every hotel. "bank/hotel/<id>": the full hotel.
+type BankIndex = { folders: any[]; hotels: any[] };
+async function bankIndex(): Promise<BankIndex> {
+  const idx = (await trips().get("bank/index", { type: "json" })) as BankIndex | null;
+  return { folders: arr(idx?.folders), hotels: arr(idx?.hotels) };
+}
+const saveBankIndex = (idx: BankIndex) => trips().setJSON("bank/index", idx);
+
+// Same Booking hotel in any language / with any dates = same key.
+function linkKey(link: string) {
+  try {
+    const u = new URL(link);
+    return (u.hostname.replace(/^www\./, "") + u.pathname.replace(/\.[a-z]{2}(-[a-z]{2})?\.html$/i, ".html")).toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function bankSummary(h: any, meta: any) {
+  return {
+    id: meta.id, folderId: meta.folderId, city: meta.city, chosenCount: meta.chosenCount || 0, addedCount: meta.addedCount || 0,
+    name: h.name, stars: h.stars, color: h.color, cover: h.images?.[0] || h.imageUrl || "", tags: h.tags.slice(0, 3),
+    roomsCount: h.rooms.length, linkKey: linkKey(h.link), updatedAt: new Date().toISOString(),
+  };
+}
+
+async function bankRoutes(req: Request, seg: string[]) {
+  const m = req.method;
+  const idx = await bankIndex();
+  const [, kind, itemId, extra] = seg;
+
+  if (!kind && m === "GET") return json(idx);
+
+  if (kind === "folders") {
+    const body = m === "GET" || m === "DELETE" ? {} : await readJson(req);
+    const clean = { name: str(body.name, 60).trim(), country: str(body.country, 60).trim() };
+    if (m === "POST" && !itemId) {
+      if (!clean.name) return fail(400, "צריך שם ליעד");
+      const exists = idx.folders.find((f) => f.name === clean.name && f.country === clean.country);
+      if (exists) return json({ folder: exists, bank: idx });
+      const folder = { id: newId(4), ...clean };
+      idx.folders.push(folder);
+      await saveBankIndex(idx);
+      return json({ folder, bank: idx }, 201);
+    }
+    const folder = idx.folders.find((f) => f.id === itemId);
+    if (!folder) return fail(404, "התיקייה לא נמצאה");
+    if (m === "PUT") {
+      if (!clean.name) return fail(400, "צריך שם ליעד");
+      Object.assign(folder, clean);
+      await saveBankIndex(idx);
+      return json(idx);
+    }
+    if (m === "DELETE") {
+      if (idx.hotels.some((h) => h.folderId === folder.id)) return fail(409, "יש מלונות בתיקייה. העבירי או מחקי אותם קודם.");
+      idx.folders = idx.folders.filter((f) => f.id !== folder.id);
+      await saveBankIndex(idx);
+      return json(idx);
+    }
+  }
+
+  if (kind === "hotels") {
+    if (m === "POST" && itemId === "full") {
+      // Full records for adding several bank hotels to a trip at once.
+      const { ids } = await readJson(req);
+      const list = await Promise.all(arr(ids).slice(0, 12).map((i: any) => trips().get(`bank/hotel/${String(i)}`, { type: "json" })));
+      const found = list.filter(Boolean) as any[];
+      for (const h of found) {
+        const meta = idx.hotels.find((x) => x.id === h.bankId);
+        if (meta) meta.addedCount = (meta.addedCount || 0) + 1;
+      }
+      await saveBankIndex(idx);
+      return json(found);
+    }
+    if (m === "POST" && !itemId) {
+      const body = await readJson(req);
+      const folder = idx.folders.find((f) => f.id === body.folderId);
+      if (!folder) return fail(400, "בחרי תיקייה");
+      const hotel = cleanHotel(body.hotel || {});
+      if (!hotel.name) return fail(400, "למלון חסר שם");
+      hotel.priceNote = "";
+      const key = linkKey(hotel.link);
+      const same = key ? idx.hotels.find((x) => x.linkKey === key) : null;
+      const meta = same || { id: newId(6), chosenCount: 0, addedCount: 0 };
+      Object.assign(meta, { folderId: folder.id, city: str(body.city, 60).trim() || meta.city || "" });
+      hotel.bankId = meta.id;
+      hotel.id = meta.id;
+      await trips().setJSON(`bank/hotel/${meta.id}`, hotel);
+      const sum = bankSummary(hotel, meta);
+      idx.hotels = [...idx.hotels.filter((x) => x.id !== meta.id), sum];
+      await saveBankIndex(idx);
+      return json({ hotel: sum, updatedExisting: !!same, bank: idx }, same ? 200 : 201);
+    }
+    const meta = idx.hotels.find((x) => x.id === itemId);
+    if (!meta) return fail(404, "המלון לא נמצא במאגר");
+    if (m === "GET") return json({ ...(await trips().get(`bank/hotel/${meta.id}`, { type: "json" })), bankMeta: meta });
+    if (m === "PUT") {
+      const body = await readJson(req);
+      let hotel: any = await trips().get(`bank/hotel/${meta.id}`, { type: "json" });
+      if (body.hotel) {
+        hotel = cleanHotel({ ...body.hotel, id: meta.id, bankId: meta.id });
+        hotel.priceNote = "";
+        await trips().setJSON(`bank/hotel/${meta.id}`, hotel);
+      }
+      if (body.folderId) {
+        if (!idx.folders.some((f) => f.id === body.folderId)) return fail(400, "התיקייה לא נמצאה");
+        meta.folderId = body.folderId;
+      }
+      if (typeof body.city === "string") meta.city = str(body.city, 60).trim();
+      const sum = bankSummary(hotel, meta);
+      idx.hotels = idx.hotels.map((x) => (x.id === meta.id ? sum : x));
+      await saveBankIndex(idx);
+      return json({ hotel: sum, bank: idx });
+    }
+    if (m === "DELETE") {
+      await trips().delete(`bank/hotel/${meta.id}`);
+      idx.hotels = idx.hotels.filter((x) => x.id !== meta.id);
+      await saveBankIndex(idx);
+      return json(idx);
+    }
+  }
+  void extra;
+  return fail(404, "לא נמצא");
+}
+
+// Counts how often clients confirm each bank hotel (shown as "נבחר N פעמים").
+async function countBankChoices(trip: Trip) {
+  const ids = arr(trip.stops).map((s: any) => arr(s.hotels).find((h: any) => h.id === s.chosenId)?.bankId).filter(Boolean);
+  if (!ids.length) return;
+  const idx = await bankIndex();
+  let changed = false;
+  for (const bid of ids) {
+    const meta = idx.hotels.find((x) => x.id === bid);
+    if (meta) { meta.chosenCount = (meta.chosenCount || 0) + 1; changed = true; }
+  }
+  if (changed) await saveBankIndex(idx);
 }
 
 // ---------- calendar (.ics) ----------
@@ -358,6 +503,7 @@ async function clientRoutes(req: Request, url: URL, rest: string[]) {
     if (missing.length) return fail(400, `עוד לא נבחר מלון ב${missing.map((s: any) => s.city).join(", ")}`);
     trip.hotelsConfirmedAt = new Date().toISOString();
     await saveTrip(trip);
+    await countBankChoices(trip).catch((e) => console.error("bank count", e));
     return json(await clientView(trip));
   }
 
@@ -426,6 +572,8 @@ async function agentRoutes(req: Request, seg: string[]) {
       return json(settings);
     }
   }
+
+  if (seg[0] === "bank") return bankRoutes(req, seg);
 
   if (seg[0] === "import" && m === "POST") {
     const body = await readJson(req);

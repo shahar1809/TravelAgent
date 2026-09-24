@@ -1,11 +1,14 @@
 import { dayMonth, nights } from "../dates.js";
 import { newId } from "../trip.js";
 import { Icon, Notice } from "../ui.jsx";
-import { Area, Field, Select, TagsField } from "./fields.jsx";
-import HotelImport from "./HotelImport.jsx";
-import HotelMedia from "./HotelMedia.jsx";
+import { useState } from "react";
+import { api } from "../api.js";
+import { Area, Field } from "./fields.jsx";
+import HotelForm, { HOTEL_COLORS as COLORS, emptyHotel } from "./HotelForm.jsx";
+import BankPicker from "./BankPicker.jsx";
+import SaveToBank from "./SaveToBank.jsx";
+import { folderLabel, useBank } from "./bank.js";
 
-const COLORS = ["#2E5A5C", "#C8923A", "#6B7248", "#B5502F", "#6E9A9B", "#8E5A2E"];
 
 function move(list, i, dir) {
   const j = i + dir;
@@ -14,6 +17,22 @@ function move(list, i, dir) {
 }
 
 export default function EditHotels({ trip, update, saved, action }) {
+  const { bank, setBank } = useBank();
+  const [picking, setPicking] = useState(null); // stop index
+  const [saving, setSaving] = useState(null); // { si, hi }
+  const [note, setNote] = useState(null);
+  const folderOf = (bankId) => bank?.folders.find((f) => f.id === bank.hotels.find((x) => x.id === bankId)?.folderId);
+
+  const pushToBank = async (h) => {
+    if (!window.confirm(`לעדכן את ״${h.name}״ במאגר לפי הגרסה שבטיול הזה? טיולים אחרים לא משתנים.`)) return;
+    try {
+      const res = await api(`bank/hotels/${h.bankId}`, { method: "PUT", body: { hotel: h } });
+      setBank(res.bank);
+      setNote({ kind: "ok", text: `״${h.name}״ עודכן במאגר.` });
+    } catch (e) {
+      setNote({ kind: "error", text: e.message });
+    }
+  };
   const addStop = () => update((t) => {
     const prev = t.stops[t.stops.length - 1];
     t.stops.push({ id: newId(), city: "", checkIn: prev?.checkOut || t.startDate || "", checkOut: "", note: "", pickId: "", hotels: [] });
@@ -34,6 +53,7 @@ export default function EditHotels({ trip, update, saved, action }) {
         <p className="muted">הלקוח רואה את העצירות לפי הסדר, ובוחר מלון אחד בכל עצירה. המלון שמסומן כהמלצה שלך מודגש אצלו.</p>
       )}
 
+      {note && <Notice kind={note.kind}>{note.text}</Notice>}
       {trip.stops.map((s, si) => (
         <section key={s.id} className="panel stack">
           <div className="panel-head">
@@ -54,6 +74,12 @@ export default function EditHotels({ trip, update, saved, action }) {
             <Field label="צ׳ק־אאוט" type="date" value={s.checkOut} onChange={(v) => update((t) => { t.stops[si].checkOut = v; })} />
           </div>
           <Area label="כמה מילים על העצירה" rows={2} value={s.note} onChange={(v) => update((t) => { t.stops[si].note = v; })} />
+          <div className="row">
+            <button type="button" className="btn btn-primary" disabled={!bank || s.hotels.length >= 6} onClick={() => setPicking(si)}>
+              <Icon name="bed" size={16} /> בחירה מהמאגר
+            </button>
+            {bank && <span className="muted small">{bank.hotels.length ? `${bank.hotels.length} מלונות במאגר` : "המאגר עוד ריק"}</span>}
+          </div>
 
           <div className="hotel-editors">
             {s.hotels.map((h, hi) => (
@@ -65,40 +91,30 @@ export default function EditHotels({ trip, update, saved, action }) {
                   </label>
                   <div className="row">
                     {chosen[s.id] === h.id && <span className="chip chip-ok">הלקוח בחר</span>}
+                    {bank && h.bankId && folderOf(h.bankId) && (
+                      <>
+                        <span className="chip chip-sea" title={folderLabel(folderOf(h.bankId))}>מהמאגר · {folderOf(h.bankId).name}</span>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => pushToBank(h)}>עדכון במאגר</button>
+                      </>
+                    )}
+                    {bank && (!h.bankId || !folderOf(h.bankId)) && h.name && (
+                      <button type="button" className={`btn btn-sm ${h.link ? "btn-primary" : "btn-ghost"}`} onClick={() => setSaving({ si, hi })}>
+                        <Icon name="plus" size={14} /> הוספה למאגר
+                      </button>
+                    )}
                     <button type="button" className="icon-btn danger" aria-label={`מחיקת ${h.name || "מלון"}`} onClick={() => update((t) => {
                       t.stops[si].hotels.splice(hi, 1);
                       if (t.stops[si].pickId === h.id) t.stops[si].pickId = "";
                     })}><Icon name="trash" size={18} /></button>
                   </div>
                 </div>
-                <HotelImport onImported={(imp) => update((t) => {
-                  const cur = t.stops[si].hotels[hi];
-                  t.stops[si].hotels[hi] = { ...cur, ...imp, id: cur.id, priceNote: cur.priceNote, color: cur.color };
-                })} />
-                <Field label="שם המלון" value={h.name} onChange={(v) => update((t) => { t.stops[si].hotels[hi].name = v; })} />
-                <div className="grid-2">
-                  <Select label="כוכבים" value={String(h.stars)} onChange={(v) => update((t) => { t.stops[si].hotels[hi].stars = Number(v); })}
-                    options={[["0", "ללא"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"]]} />
-                  <Field label="הערת מחיר" hint="למשל: הכי משתלם" value={h.priceNote} onChange={(v) => update((t) => { t.stops[si].hotels[hi].priceNote = v; })} />
-                </div>
-                <Area label="תיאור" rows={3} value={h.description} onChange={(v) => update((t) => { t.stops[si].hotels[hi].description = v; })} />
-                <TagsField label="תגיות" value={h.tags} onChange={(v) => update((t) => { t.stops[si].hotels[hi].tags = v; })} />
-                <Field label="קישור למלון" hint="מתמלא בייבוא. הלקוח רואה ״לאתר המלון״" type="url" dir="ltr" value={h.link} onChange={(v) => update((t) => { t.stops[si].hotels[hi].link = v; })} />
-                <Field label="כתובת" value={h.address} onChange={(v) => update((t) => { t.stops[si].hotels[hi].address = v; })} />
-                <HotelMedia hotel={h} set={(fn) => update((t) => { const x = t.stops[si].hotels[hi]; x.images = x.images || []; x.rooms = x.rooms || []; fn(x); })} />
-                <div className="swatches" role="radiogroup" aria-label="צבע">
-                  {COLORS.map((c) => (
-                    <button key={c} type="button" role="radio" aria-checked={h.color === c} aria-label={c}
-                      className={`swatch${h.color === c ? " on" : ""}`} style={{ background: c }}
-                      onClick={() => update((t) => { t.stops[si].hotels[hi].color = c; })} />
-                  ))}
-                </div>
+                <HotelForm hotel={h} set={(fn) => update((t) => fn(t.stops[si].hotels[hi]))} />
               </div>
             ))}
             {s.hotels.length < 6 && (
               <button type="button" className="hotel-add" onClick={() => update((t) => {
                 const hid = newId();
-                t.stops[si].hotels.push({ id: hid, name: "", stars: 4, description: "", tags: [], priceNote: "", link: "", imageUrl: "", address: "", images: [], rooms: [], photoPool: [], color: COLORS[t.stops[si].hotels.length % COLORS.length] });
+                t.stops[si].hotels.push(emptyHotel(hid, COLORS[t.stops[si].hotels.length % COLORS.length]));
                 if (!t.stops[si].pickId) t.stops[si].pickId = hid;
               })}>
                 <Icon name="plus" /> הוספת מלון
@@ -109,6 +125,33 @@ export default function EditHotels({ trip, update, saved, action }) {
       ))}
 
       <button type="button" className="btn btn-ghost" onClick={addStop}><Icon name="plus" size={16} /> הוספת עצירה</button>
+
+      {picking !== null && bank && (
+        <BankPicker bank={bank} stop={trip.stops[picking]} onClose={() => setPicking(null)}
+          onAdd={(list) => {
+            update((t) => {
+              const st = t.stops[picking];
+              for (const b of list) {
+                if (st.hotels.length >= 6 || st.hotels.some((x) => x.bankId === b.bankId)) continue;
+                const hid = newId();
+                st.hotels.push({ ...b, id: hid, bankId: b.bankId, priceNote: "" });
+                if (!st.pickId) st.pickId = hid;
+              }
+            });
+            setNote({ kind: "ok", text: `נוספו ${list.length === 1 ? "מלון אחד" : `${list.length} מלונות`} מהמאגר. לחצי ״שמירה״ כדי שהלקוח יראה.` });
+            setPicking(null);
+          }} />
+      )}
+      {saving && bank && (
+        <SaveToBank hotel={trip.stops[saving.si].hotels[saving.hi]} city={trip.stops[saving.si].city} bank={bank}
+          onClose={() => setSaving(null)}
+          onSaved={(bankId, b, updatedExisting) => {
+            setBank(b);
+            update((t) => { t.stops[saving.si].hotels[saving.hi].bankId = bankId; });
+            setNote({ kind: "ok", text: updatedExisting ? "המלון כבר היה במאגר, ועודכן. לחצי ״שמירה״ לשמירת הטיול." : "המלון נשמר למאגר. לחצי ״שמירה״ לשמירת הטיול." });
+            setSaving(null);
+          }} />
+      )}
     </div>
   );
 }

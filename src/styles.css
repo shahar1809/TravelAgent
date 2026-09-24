@@ -545,3 +545,20 @@ p { margin: 0; }
 
 .more-body { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; width: 100%; }
 .rooms-title { margin: 0; font-size: 0.95rem; font-weight: 600; }
+
+/* ---------- location strip above calendar weeks ---------- */
+.cal-head { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-week + .cal-week { margin-top: 4px; }
+.stay-lane { display: grid; grid-template-columns: repeat(7, 2px minmax(0, 1fr) minmax(0, 1fr) 2px); height: 22px; margin: 6px 0 4px; }
+.stay-bar {
+  grid-row: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 0 6px; margin: 0 1px;
+  font-size: 0.75rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; cursor: pointer;
+  background: color-mix(in srgb, var(--stay) 22%, var(--card)); border: 1px solid var(--stay);
+  border-inline-width: 0; border-radius: 0;
+}
+.stay-bar.starts { border-inline-start-width: 1px; border-start-start-radius: 11px; border-end-start-radius: 11px; }
+.stay-bar.ends { border-inline-end-width: 1px; border-start-end-radius: 11px; border-end-end-radius: 11px; }
+.stay-bar svg { flex: none; color: var(--stay); }
+.stay-name { overflow: hidden; text-overflow: ellipsis; }
+.stay-nights { font-weight: 400; color: var(--muted); }
+.stay-bar:hover { background: color-mix(in srgb, var(--stay) 34%, var(--card)); }

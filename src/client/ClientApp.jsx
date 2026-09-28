@@ -42,6 +42,26 @@ export default function ClientApp({ section }) {
 
   useEffect(() => { if (hasSession) load(); }, [hasSession, load]);
 
+  // Stay current with her edits: refresh when the app comes back to the screen, when the
+  // connection returns, and every minute while it's open.
+  useEffect(() => {
+    if (!hasSession) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible" || !navigator.onLine) return;
+      api("me").then(setTrip).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    const timer = setInterval(refresh, 60000);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      clearInterval(timer);
+    };
+  }, [hasSession]);
+
   useEffect(() => {
     const expired = async () => {
       await session.clear();

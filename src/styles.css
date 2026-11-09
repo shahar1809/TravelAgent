@@ -634,4 +634,4 @@ p { margin: 0; }
 /* money: symbol in Rubik, sized to the digits */
 .money { unicode-bidi: isolate; direction: ltr; white-space: nowrap; }
 .money .cur { font-family: var(--body); font-weight: 600; letter-spacing: 0; margin-inline-end: 0.06em; }
-.display .money .cur, .price .cur, .money.price .cur { font-size: 0.62em; vertical-align: 0.28em; }
+.display .money .cur, .price .cur, .money.price .cur { font-size: 0.75em; vertical-align: baseline; font-weight: 700; margin-inline-end: 0.04em; }

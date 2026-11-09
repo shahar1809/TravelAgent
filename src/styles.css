@@ -630,3 +630,4 @@ p { margin: 0; }
 .total-lines { list-style: none; margin: 0; padding: 0; width: 100%; }
 .total-lines li { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.95rem; }
 .total-lines .grow { flex: 1; min-width: 0; }
+.total-amt { display: flex; flex-direction: column; align-items: flex-end; text-align: left; }

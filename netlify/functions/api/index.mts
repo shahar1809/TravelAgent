@@ -438,6 +438,30 @@ async function countBankChoices(trip: Trip) {
   if (changed) await saveBankIndex(idx);
 }
 
+// ---------- exchange rates (ECB, via Frankfurter), cached 12h ----------
+// rates[X] = how many X one US dollar buys.
+async function getRates() {
+  const cached = (await trips().get("rates", { type: "json" })) as { at: number; date: string; rates: Record<string, number> } | null;
+  if (cached && Date.now() - cached.at < 12 * 3600 * 1000) return cached;
+  try {
+    let j: any = null;
+    for (const url of ["https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,ILS,GBP", "https://api.frankfurter.app/latest?from=USD&to=EUR,ILS,GBP"]) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) { j = await res.json(); break; }
+      } catch { /* try the next address */ }
+    }
+    if (!j?.rates) throw new Error("no rates");
+    const fresh = { at: Date.now(), date: String(j.date || ""), rates: { USD: 1, ...j.rates } };
+    if (!(fresh.rates.EUR > 0 && fresh.rates.ILS > 0)) throw new Error("bad rates");
+    await trips().setJSON("rates", fresh);
+    return fresh;
+  } catch (e) {
+    console.error("rates", e);
+    return cached; // stale is better than nothing
+  }
+}
+
 // ---------- calendar (.ics) ----------
 function icsText(s: string) {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
@@ -776,6 +800,11 @@ export default async (req: Request, context: Context) => {
     }
 
     if (seg[0] === "public" && req.method === "GET") return json(await getSettings());
+
+    if (seg[0] === "rates" && req.method === "GET") {
+      const r = await getRates();
+      return r ? json({ date: r.date, rates: r.rates }) : fail(503, "אין שערי מטבע כרגע");
+    }
 
     if (seg[0] === "enter" && req.method === "POST") {
       const { key, rec } = await attempts(context.ip);

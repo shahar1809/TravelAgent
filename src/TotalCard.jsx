@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { formatPrice, formatTotals, tripTotal } from "./money.js";
+import { tripTotal } from "./money.js";
+import { Money, MoneyList } from "./Money.jsx";
 import { toUSD, useRates } from "./rates.js";
 import { shortDate } from "./dates.js";
 import { Icon } from "./ui.jsx";
@@ -20,10 +21,10 @@ export default function TotalCard({ trip, forAgent = false }) {
     <section className="total-card">
       <div className="total-head">
         <span className="muted small">{t.final ? "מחיר סופי לכל הטיול" : forAgent ? "סה״כ לפי הבחירה הנוכחית" : "המחיר לפי הבחירה הנוכחית"}</span>
-        <span className="display total-sum" dir="ltr">{usd ? formatPrice(usd) : formatTotals(t.totals)}</span>
+        <span className="display total-sum">{usd ? <Money price={usd} /> : <MoneyList prices={t.totals} />}</span>
         {usd && mixed && (
           <span className="muted small">
-            <bdi dir="ltr">{formatTotals(t.totals)}</bdi>, הומר לדולר לפי שער{fx?.date ? ` מ־${shortDate(fx.date)}` : " עדכני"}. הסכום הסופי בתשלום עשוי להשתנות מעט.
+            <MoneyList prices={t.totals} />, הומר לדולר לפי שער{fx?.date ? ` מ־${shortDate(fx.date)}` : " עדכני"}. הסכום הסופי בתשלום עשוי להשתנות מעט.
           </span>
         )}
         {!usd && <span className="muted small">אין כרגע שער מטבע, אז הסכום מוצג במטבעות המקוריים.</span>}
@@ -41,8 +42,8 @@ export default function TotalCard({ trip, forAgent = false }) {
                 <Icon name={l.kind === "hotel" ? "bed" : "plane"} size={15} />
                 <span className="grow" dir="auto">{l.label}</span>
                 <span className="total-amt">
-                  <span dir="ltr" className={l.price ? "" : "muted"}>{l.price ? formatPrice(l.price) : "—"}</span>
-                  {l.price && l.price.currency !== "USD" && u !== null && <span className="muted small" dir="ltr">≈ {formatPrice({ currency: "USD", amount: u })}</span>}
+                  {l.price ? <Money price={l.price} /> : <span className="muted">—</span>}
+                  {l.price && l.price.currency !== "USD" && u !== null && <span className="muted small">≈ <Money price={{ currency: "USD", amount: u }} /></span>}
                 </span>
               </li>
             );

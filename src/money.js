@@ -37,3 +37,14 @@ export function tripTotal(trip) {
 }
 
 export const formatTotals = (totals) => totals.map(formatPrice).join(" + ");
+
+// Number and symbol separately, so the symbol can use a different font.
+export function priceParts(p) {
+  if (!p || typeof p.amount !== "number") return null;
+  try {
+    const parts = new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency || "ILS", maximumFractionDigits: 0 }).formatToParts(p.amount);
+    return { symbol: parts.filter((x) => x.type === "currency").map((x) => x.value).join(""), number: parts.filter((x) => x.type !== "currency" && x.type !== "literal").map((x) => x.value).join("") };
+  } catch {
+    return { symbol: "", number: String(p.amount) };
+  }
+}

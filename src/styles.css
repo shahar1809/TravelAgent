@@ -631,3 +631,7 @@ p { margin: 0; }
 .total-lines li { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.95rem; }
 .total-lines .grow { flex: 1; min-width: 0; }
 .total-amt { display: flex; flex-direction: column; align-items: flex-end; text-align: left; }
+/* money: symbol in Rubik, sized to the digits */
+.money { unicode-bidi: isolate; direction: ltr; white-space: nowrap; }
+.money .cur { font-family: var(--body); font-weight: 600; letter-spacing: 0; margin-inline-end: 0.06em; }
+.display .money .cur, .price .cur, .money.price .cur { font-size: 0.62em; vertical-align: 0.28em; }

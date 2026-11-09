@@ -1,4 +1,5 @@
 import { formatPrice } from "../money.js";
+import { Money } from "../Money.jsx";
 import { useState } from "react";
 import { dayMonth, weekday } from "../dates.js";
 import { LEGS, flightsState, layover, legsOf, nextDay, stopsLabel } from "../flights.js";
@@ -45,7 +46,7 @@ function OptionCard({ group, option, selected, locked, busy, onPick, agentName, 
         <div className="row">
           {isPick && <span className="chip chip-clay">ההמלצה של {agentName}</span>}
           {option.priceNote && <span className="price-note">{option.priceNote}</span>}
-          {formatPrice(option.price) && <span className="price" dir="ltr">{formatPrice(option.price)}</span>}
+          {formatPrice(option.price) && <Money price={option.price} className="price" />}
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import TotalCard from "../TotalCard.jsx";
 import { useState } from "react";
 import { diffDays, range, todayIso, nights, shortDate } from "../dates.js";
 import { hotelsState } from "../trip.js";
@@ -58,6 +59,8 @@ export default function Prepare({ trip, act, base }) {
       </section>
 
       {trip.intro && <p className="intro">{trip.intro}</p>}
+
+      <TotalCard trip={trip} />
 
       {flightsState(trip).total > 0 && !trip.flightsConfirmedAt && (
         <section className="card card-action">

@@ -624,3 +624,9 @@ p { margin: 0; }
 .price-field { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 6px; }
 .price-field input, .price-field select { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--card); }
 .price-field input { font-family: var(--mono); font-size: 1.05rem; }
+.total-card { background: var(--card); border: 2px solid var(--ink); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.total-head { display: flex; flex-direction: column; gap: 2px; }
+.total-sum { font-size: 2.6rem; line-height: 1; align-self: flex-start; }
+.total-lines { list-style: none; margin: 0; padding: 0; width: 100%; }
+.total-lines li { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.95rem; }
+.total-lines .grow { flex: 1; min-width: 0; }

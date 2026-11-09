@@ -46,6 +46,8 @@ The **טיסות** tab works like hotels:
 - Every hotel option and flight option has a **מחיר**: a currency (₪ / € / $ / £) and a whole-number amount, shown to the client as e.g. "€1,460". Prices are not saved into the hotel bank.
 - When the plan is settled, she clicks **נעילה ותוכנית סופית** in the מלונות or טיסות tab (save first). Each stop/flight keeps the client's choice, or her recommendation if they didn't choose, and the client then sees only that final plan ("המלונות שלכם", "הטיסות שלכם"). **ביטול נעילה** shows all the options again.
 
+- The trip's total price (selected hotel per stop + selected flight per choice) shows on the client's הכנות screen and in her פרטים tab, with a breakdown. Different currencies are summed separately. It reads "מחיר סופי" once hotels and flights are locked.
+
 ## Hotel bank
 
 **מאגר מלונות** (in the side menu) keeps the hotels she recommends again and again, in destination folders grouped by country (for example איטליה → סיציליה).

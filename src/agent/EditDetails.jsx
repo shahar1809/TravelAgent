@@ -1,3 +1,4 @@
+import TotalCard from "../TotalCard.jsx";
 import { Area, Field } from "./fields.jsx";
 import AccessPanel from "./AccessPanel.jsx";
 
@@ -5,6 +6,7 @@ export default function EditDetails({ trip, update, action }) {
   return (
     <div className="stack-lg narrow">
       <AccessPanel trip={trip} action={action} />
+      <TotalCard trip={trip} forAgent />
       <Field label="שם הטיול" value={trip.title} onChange={(v) => update((t) => { t.title = v; })} />
       <div className="grid-2">
         <Field label="לקוח" value={trip.clientName} onChange={(v) => update((t) => { t.clientName = v; })} />

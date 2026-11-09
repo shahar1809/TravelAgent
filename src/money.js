@@ -14,3 +14,26 @@ export function formatPrice(p) {
     return String(p.amount);
   }
 }
+
+// Lines and per-currency totals for the selected plan: each stop's hotel and each flight choice
+// (client's choice, else her recommendation).
+export function tripTotal(trip) {
+  const lines = [];
+  for (const s of trip.stops || []) {
+    const h = (s.hotels || []).find((x) => x.id === (s.chosenId || s.pickId));
+    if (h) lines.push({ key: `h-${s.id}`, kind: "hotel", label: `${s.city || "מלון"} · ${h.name}`, price: h.price || null });
+  }
+  for (const g of trip.flightGroups || []) {
+    const o = (g.options || []).find((x) => x.id === (g.chosenId || g.pickId));
+    if (o) lines.push({ key: `f-${g.id}`, kind: "flight", label: `טיסות · ${g.title || o.title || "טיסה"}`, price: o.price || null });
+  }
+  const sums = {};
+  for (const l of lines) if (l.price) sums[l.price.currency] = (sums[l.price.currency] || 0) + l.price.amount;
+  const totals = Object.entries(sums).map(([currency, amount]) => ({ currency, amount }));
+  const hasHotels = (trip.stops || []).length > 0;
+  const hasFlights = (trip.flightGroups || []).length > 0;
+  const final = (!hasHotels || !!trip.hotelsFinalAt) && (!hasFlights || !!trip.flightsFinalAt) && (hasHotels || hasFlights);
+  return { lines, totals, missing: lines.filter((l) => !l.price).length, final };
+}
+
+export const formatTotals = (totals) => totals.map(formatPrice).join(" + ");

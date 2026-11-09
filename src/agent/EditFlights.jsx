@@ -3,6 +3,7 @@ import { AIRPORTS, LEGS, layover } from "../flights.js";
 import { newId } from "../trip.js";
 import { Icon, Notice } from "../ui.jsx";
 import { Area, Field, Select } from "./fields.jsx";
+import PriceField from "./PriceField.jsx";
 
 const CABINS = [["תיירים", "תיירים"], ["פרימיום", "פרימיום"], ["עסקים", "עסקים"], ["ראשונה", "ראשונה"]];
 
@@ -41,7 +42,7 @@ const emptySeg = (leg, prev = {}) => ({
 
 function newOption(trip) {
   return {
-    id: newId(), title: "", cabin: "תיירים", baggage: "", fareNote: "", priceNote: "", price: "", note: "",
+    id: newId(), title: "", cabin: "תיירים", baggage: "", fareNote: "", priceNote: "", price: null, note: "",
     segments: [
       { ...emptySeg("out"), from: "TLV", fromCity: AIRPORTS.TLV, departDate: trip.startDate || "", arriveDate: trip.startDate || "" },
       { ...emptySeg("back"), to: "TLV", toCity: AIRPORTS.TLV, departDate: trip.endDate || "", arriveDate: trip.endDate || "" },
@@ -156,7 +157,7 @@ export default function EditFlights({ trip, update, saved, action }) {
                   <Select label="מחלקה" value={o.cabin || "תיירים"} options={CABINS} onChange={(v) => setO((x) => { x.cabin = v; })} />
                   <Field label="הערת מחיר" hint="למשל: הכי זול" value={o.priceNote} onChange={(v) => setO((x) => { x.priceNote = v; })} />
                 </div>
-                <Field label="מחיר" hint="מוצג ללקוח, למשל: €1,740 לכל הנוסעים" value={o.price} onChange={(v) => setO((x) => { x.price = v; })} />
+                <PriceField value={o.price} hint="מוצג ללקוח, לכל הנוסעים" onChange={(v) => setO((x) => { x.price = v; })} />
                 <div className="grid-2">
                   <Field label="כבודה" hint="מה כלול לכל נוסע" value={o.baggage} onChange={(v) => setO((x) => { x.baggage = v; })} />
                   <Field label="שינויים וביטולים" value={o.fareNote} onChange={(v) => setO((x) => { x.fareNote = v; })} />

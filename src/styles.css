@@ -620,3 +620,7 @@ p { margin: 0; }
 .hotel.final.locked, .flight-opt.final.locked, .hotel.final, .flight-opt.final { cursor: default; opacity: 1; }
 .lock-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1.5px dashed var(--ink); border-radius: var(--radius); background: var(--card); }
 .lock-bar > span { flex: 1; min-width: 240px; font-size: 0.95rem; }
+
+.price-field { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 6px; }
+.price-field input, .price-field select { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--card); }
+.price-field input { font-family: var(--mono); font-size: 1.05rem; }

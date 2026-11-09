@@ -1,11 +1,12 @@
 import HotelImport from "./HotelImport.jsx";
 import HotelMedia from "./HotelMedia.jsx";
 import { Area, Field, Select, TagsField } from "./fields.jsx";
+import PriceField from "./PriceField.jsx";
 
 export const HOTEL_COLORS = ["#2E5A5C", "#C8923A", "#6B7248", "#B5502F", "#6E9A9B", "#8E5A2E"];
 
 export const emptyHotel = (id, color = HOTEL_COLORS[0]) => ({
-  id, name: "", stars: 4, description: "", tags: [], priceNote: "", price: "", link: "", imageUrl: "", address: "",
+  id, name: "", stars: 4, description: "", tags: [], priceNote: "", price: null, link: "", imageUrl: "", address: "",
   images: [], rooms: [], photoPool: [], color, bankId: "",
 });
 
@@ -26,7 +27,7 @@ export default function HotelForm({ hotel: h, set, showPrice = true }) {
           : <Field label="כתובת" value={h.address} onChange={(v) => set((x) => { x.address = v; })} />}
       </div>
       {showPrice && (
-        <Field label="מחיר" hint="מוצג ללקוח, למשל: €1,460 לכל השהות" value={h.price} onChange={(v) => set((x) => { x.price = v; })} />
+        <PriceField value={h.price} hint="מוצג ללקוח, לכל השהות" onChange={(v) => set((x) => { x.price = v; })} />
       )}
       <Area label="תיאור" rows={3} value={h.description} onChange={(v) => set((x) => { x.description = v; })} />
       <TagsField label="תגיות" value={h.tags || []} onChange={(v) => set((x) => { x.tags = v; })} />

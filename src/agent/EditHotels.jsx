@@ -156,7 +156,7 @@ export default function EditHotels({ trip, update, saved, action }) {
               for (const b of list) {
                 if (st.hotels.length >= 6 || st.hotels.some((x) => x.bankId === b.bankId)) continue;
                 const hid = newId();
-                st.hotels.push({ ...b, id: hid, bankId: b.bankId, priceNote: "", price: "" });
+                st.hotels.push({ ...b, id: hid, bankId: b.bankId, priceNote: "", price: null });
                 if (!st.pickId) st.pickId = hid;
               }
             });

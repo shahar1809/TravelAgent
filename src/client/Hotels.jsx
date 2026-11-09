@@ -1,3 +1,4 @@
+import { formatPrice } from "../money.js";
 import { useEffect, useRef, useState } from "react";
 import { range, nights, dayMonth } from "../dates.js";
 import { hotelsState } from "../trip.js";
@@ -75,7 +76,7 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName, fin
         <div className="hotel-meta">
           <Stars n={hotel.stars} />
           {hotel.priceNote && <span className="price-note">{hotel.priceNote}</span>}
-          {hotel.price && <span className="price" dir="auto">{hotel.price}</span>}
+          {formatPrice(hotel.price) && <span className="price" dir="ltr">{formatPrice(hotel.price)}</span>}
         </div>
         {hotel.address && <span className="muted small" dir="auto">{hotel.address}</span>}
         <HotelMore hotel={hotel} />

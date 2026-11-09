@@ -113,6 +113,13 @@ const str = (v: unknown, max = 2000) => (typeof v === "string" ? v.slice(0, max)
 const date = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
 const time = (v: unknown) => (typeof v === "string" && /^\d{2}:\d{2}$/.test(v) ? v : "");
 const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+const CURRENCIES = ["ILS", "EUR", "USD", "GBP"];
+// Price as currency + whole-number amount; anything else is dropped.
+function price(v: any) {
+  const amount = typeof v?.amount === "number" ? v.amount : Number(String(v?.amount ?? "").replace(/[,\s]/g, "") || NaN);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return { currency: CURRENCIES.includes(v?.currency) ? v.currency : "ILS", amount: Math.min(Math.floor(amount), 99_999_999) };
+}
 const httpsUrl = (v: unknown) => (typeof v === "string" && /^https:\/\/\S+$/.test(v) ? v.slice(0, 1000) : "");
 const urls = (v: unknown, max: number) => arr(v).map(httpsUrl).filter(Boolean).slice(0, max);
 const id = (v: unknown) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : newId(4));
@@ -127,7 +134,7 @@ function cleanHotel(h: any) {
     description: str(h.description, 2000),
     tags: arr(h.tags).map((t: unknown) => str(t, 60)).filter(Boolean).slice(0, 8),
     priceNote: str(h.priceNote, 200),
-    price: str(h.price, 60),
+    price: price(h.price),
     link: str(h.link, 500),
     imageUrl: str(h.imageUrl, 1000),
     color: str(h.color, 20),
@@ -176,7 +183,7 @@ function cleanTrip(input: Trip): Trip {
         baggage: str(o.baggage, 300),
         fareNote: str(o.fareNote, 300),
         priceNote: str(o.priceNote, 200),
-        price: str(o.price, 60),
+        price: price(o.price),
         note: str(o.note, 500),
         segments: arr(o.segments).slice(0, 8).map((x: any) => ({
           id: id(x.id),
@@ -372,7 +379,7 @@ async function bankRoutes(req: Request, seg: string[]) {
       const hotel = cleanHotel(body.hotel || {});
       if (!hotel.name) return fail(400, "למלון חסר שם");
       hotel.priceNote = "";
-      hotel.price = "";
+      hotel.price = null;
       const key = linkKey(hotel.link);
       const same = key ? idx.hotels.find((x) => x.linkKey === key) : null;
       const meta = same || { id: newId(6), chosenCount: 0, addedCount: 0 };
@@ -394,7 +401,7 @@ async function bankRoutes(req: Request, seg: string[]) {
       if (body.hotel) {
         hotel = cleanHotel({ ...body.hotel, id: meta.id, bankId: meta.id });
         hotel.priceNote = "";
-      hotel.price = "";
+      hotel.price = null;
         await trips().setJSON(`bank/hotel/${meta.id}`, hotel);
       }
       if (body.folderId) {

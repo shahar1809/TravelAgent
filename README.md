@@ -43,7 +43,7 @@ The **טיסות** tab works like hotels:
 
 ## Prices and the final plan
 
-- Every hotel option and flight option has a **מחיר** field, shown to the client on the card (free text, e.g. "€1,460 לכל השהות"). Prices are not saved into the hotel bank.
+- Every hotel option and flight option has a **מחיר**: a currency (₪ / € / $ / £) and a whole-number amount, shown to the client as e.g. "€1,460". Prices are not saved into the hotel bank.
 - When the plan is settled, she clicks **נעילה ותוכנית סופית** in the מלונות or טיסות tab (save first). Each stop/flight keeps the client's choice, or her recommendation if they didn't choose, and the client then sees only that final plan ("המלונות שלכם", "הטיסות שלכם"). **ביטול נעילה** shows all the options again.
 
 ## Hotel bank

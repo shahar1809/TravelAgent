@@ -6,6 +6,26 @@ import { Area, Field, Select } from "./fields.jsx";
 
 const CABINS = [["תיירים", "תיירים"], ["פרימיום", "פרימיום"], ["עסקים", "עסקים"], ["ראשונה", "ראשונה"]];
 
+function LockPanel_flights({ saved, action }) {
+  const final = saved?.flightsFinalAt;
+  if (final) {
+    return (
+      <Notice kind="ok">
+        <strong>הטיסות נעולים.</strong> הלקוח רואה רק את התוכנית הסופית (מסומנת ״בתוכנית הסופית״).{" "}
+        <button type="button" className="text-link" onClick={() => action("unfinalize-flights", "לבטל את הנעילה? הלקוח יראה שוב את כל האפשרויות.")}>ביטול נעילה</button>
+      </Notice>
+    );
+  }
+  return (
+    <div className="lock-bar">
+      <span>כשהכול סגור, נעלי את ההטיסות: הלקוח יראה רק את האפשרות שנבחרה בכל בחירה (או ההמלצה שלך, אם לא בחר).</span>
+      <button type="button" className="btn btn-primary" onClick={() => action("finalize-flights", "לנעול ולהציג ללקוח רק את התוכנית הסופית?")}>
+        <Icon name="check" size={16} /> נעילה ותוכנית סופית
+      </button>
+    </div>
+  );
+}
+
 function move(list, i, dir) {
   const j = i + dir;
   if (j < 0 || j >= list.length) return;
@@ -21,7 +41,7 @@ const emptySeg = (leg, prev = {}) => ({
 
 function newOption(trip) {
   return {
-    id: newId(), title: "", cabin: "תיירים", baggage: "", fareNote: "", priceNote: "", note: "",
+    id: newId(), title: "", cabin: "תיירים", baggage: "", fareNote: "", priceNote: "", price: "", note: "",
     segments: [
       { ...emptySeg("out"), from: "TLV", fromCity: AIRPORTS.TLV, departDate: trip.startDate || "", arriveDate: trip.startDate || "" },
       { ...emptySeg("back"), to: "TLV", toCity: AIRPORTS.TLV, departDate: trip.endDate || "", arriveDate: trip.endDate || "" },
@@ -79,7 +99,7 @@ export default function EditFlights({ trip, update, saved, action }) {
 
   return (
     <div className="stack-lg">
-      {confirmed ? (
+      {saved?.flightsFinalAt ? null : confirmed ? (
         <Notice kind="ok">
           הלקוח אישר את הטיסות ב־{dayMonth(confirmed.slice(0, 10))}.{" "}
           <button type="button" className="text-link" onClick={() => action("unlock-flights", "לפתוח את בחירת הטיסות מחדש? הלקוח יוכל לשנות ולאשר שוב.")}>פתיחה מחדש לשינויים</button>
@@ -88,6 +108,7 @@ export default function EditFlights({ trip, update, saved, action }) {
         <p className="muted">בכל בחירה אפשר להציע כמה אפשרויות, והלקוח בוחר אחת. הטיסה שנבחרה (או ההמלצה שלך, עד שיבחרו) נכנסת אוטומטית ללו״ז וליומן.</p>
       )}
 
+      {groups.length > 0 && <LockPanel_flights saved={saved} action={action} />}
       {groups.map((g, gi) => (
         <section key={g.id} className="panel stack">
           <div className="panel-head">
@@ -115,7 +136,8 @@ export default function EditFlights({ trip, update, saved, action }) {
                     ההמלצה שלי
                   </label>
                   <div className="row">
-                    {chosen[g.id] === o.id && <span className="chip chip-ok">הלקוח בחר</span>}
+                    {saved?.flightsFinalAt && chosen[g.id] === o.id ? <span className="chip chip-ok">בתוכנית הסופית</span>
+                      : chosen[g.id] === o.id && <span className="chip chip-ok">הלקוח בחר</span>}
                     <button type="button" className="btn btn-ghost" onClick={() => upd((fg) => {
                       const copy = structuredClone(o);
                       copy.id = newId();
@@ -134,6 +156,7 @@ export default function EditFlights({ trip, update, saved, action }) {
                   <Select label="מחלקה" value={o.cabin || "תיירים"} options={CABINS} onChange={(v) => setO((x) => { x.cabin = v; })} />
                   <Field label="הערת מחיר" hint="למשל: הכי זול" value={o.priceNote} onChange={(v) => setO((x) => { x.priceNote = v; })} />
                 </div>
+                <Field label="מחיר" hint="מוצג ללקוח, למשל: €1,740 לכל הנוסעים" value={o.price} onChange={(v) => setO((x) => { x.price = v; })} />
                 <div className="grid-2">
                   <Field label="כבודה" hint="מה כלול לכל נוסע" value={o.baggage} onChange={(v) => setO((x) => { x.baggage = v; })} />
                   <Field label="שינויים וביטולים" value={o.fareNote} onChange={(v) => setO((x) => { x.fareNote = v; })} />

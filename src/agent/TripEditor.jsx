@@ -62,12 +62,22 @@ export default function TripEditor({ id }) {
 
   // Server actions that change access or locks; returns true on success.
   const action = async (path, confirmText, body) => {
+    if (path.includes("finalize") && dirty) {
+      setMsg({ kind: "error", text: "יש שינויים שלא נשמרו. לחצי ״שמירה״ ואז נעלי." });
+      return false;
+    }
     if (confirmText && !window.confirm(confirmText)) return false;
     setBusy(true);
     setMsg(null);
     try {
       const t = await api(`trips/${id}/${path}`, { method: "POST", body: body ?? {} });
-      const keep = { accessCode: t.accessCode, accessVersion: t.accessVersion, hotelsConfirmedAt: t.hotelsConfirmedAt, flightsConfirmedAt: t.flightsConfirmedAt };
+      if (path.includes("finalize")) {
+        setSaved(t);
+        setDraft(t);
+        setMsg({ kind: "ok", text: path.startsWith("finalize") ? "ננעל. הלקוח רואה עכשיו את התוכנית הסופית." : "הנעילה בוטלה. הלקוח רואה שוב את כל האפשרויות." });
+        return true;
+      }
+      const keep = { accessCode: t.accessCode, accessVersion: t.accessVersion, hotelsConfirmedAt: t.hotelsConfirmedAt, flightsConfirmedAt: t.flightsConfirmedAt, hotelsFinalAt: t.hotelsFinalAt, flightsFinalAt: t.flightsFinalAt };
       setSaved((s) => ({ ...s, ...keep }));
       setDraft((d) => ({ ...d, ...keep }));
       if (path === "code") setMsg({ kind: "ok", text: "הקוד עודכן. שלחי ללקוח את ההודעה החדשה." });

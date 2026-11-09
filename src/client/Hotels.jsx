@@ -54,12 +54,12 @@ function HotelMore({ hotel }) {
   );
 }
 
-function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
-  const isPick = stop.pickId === hotel.id;
+function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName, final }) {
+  const isPick = !final && stop.pickId === hotel.id;
   const inputId = `h-${stop.id}-${hotel.id}`;
   const choose = () => { if (!locked && !busy && !selected) onPick(hotel.id); };
   return (
-    <article className={`hotel${selected ? " selected" : ""}${locked ? " locked" : ""}`}
+    <article className={`hotel${selected && !final ? " selected" : ""}${locked ? " locked" : ""}${final ? " final" : ""}`}
       onClick={(e) => { if (!e.target.closest("a, button, details, input, label, dialog")) choose(); }}>
       <div className="hotel-media" style={{ background: hotel.color || "#2E5A5C" }}>
         <Gallery images={hotel.images?.length ? hotel.images : hotel.imageUrl ? [hotel.imageUrl] : []} title={hotel.name} />
@@ -69,12 +69,13 @@ function HotelCard({ stop, hotel, selected, locked, busy, onPick, agentName }) {
         <label className="hotel-head" htmlFor={inputId}>
           <input id={inputId} type="radio" name={`stop-${stop.id}`} checked={selected} disabled={locked || busy}
             onChange={choose} className="sr-radio" />
-          <span className="radio-mark" aria-hidden="true">{selected && <Icon name="check" size={14} stroke={2.4} />}</span>
+          {!final && <span className="radio-mark" aria-hidden="true">{selected && <Icon name="check" size={14} stroke={2.4} />}</span>}
           <span className="hotel-name" dir="auto">{hotel.name}</span>
         </label>
         <div className="hotel-meta">
           <Stars n={hotel.stars} />
           {hotel.priceNote && <span className="price-note">{hotel.priceNote}</span>}
+          {hotel.price && <span className="price" dir="auto">{hotel.price}</span>}
         </div>
         {hotel.address && <span className="muted small" dir="auto">{hotel.address}</span>}
         <HotelMore hotel={hotel} />
@@ -93,6 +94,7 @@ export default function Hotels({ trip, act }) {
   const [error, setError] = useState("");
   const hs = hotelsState(trip);
   const agentName = trip.agency?.agentName || "הסוכנת";
+  const final = !!trip.hotelsFinalAt;
 
   if (!trip.stops.length) {
     return (
@@ -130,15 +132,15 @@ export default function Hotels({ trip, act }) {
   return (
     <div className="stack-lg">
       <div className="stack-sm">
-        <h1 className="display h1">מלונות</h1>
+        <h1 className="display h1">{final ? "המלונות שלכם" : "מלונות"}</h1>
         <p className="muted">
-          {hs.confirmed
+          {final ? "התוכנית הסופית: איפה ישנים בכל עצירה." : hs.confirmed
             ? "זו הבחירה שלכם. אם תרצו לשנות משהו, פנו אליי ואפתח אותה מחדש."
             : `המסלול סגור. בכל עצירה בוחרים מלון אחד — ההמלצה שלי מסומנת. הבחירה נשמרת מיד, ובסוף מאשרים.`}
         </p>
       </div>
 
-      {hs.confirmed && <Notice kind="ok">אישרתם את המלונות ב־{dayMonth(trip.hotelsConfirmedAt.slice(0, 10))}.</Notice>}
+      {hs.confirmed && !final && <Notice kind="ok">אישרתם את המלונות ב־{dayMonth(trip.hotelsConfirmedAt.slice(0, 10))}.</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
 
       {trip.stops.map((stop, i) => {
@@ -157,7 +159,7 @@ export default function Hotels({ trip, act }) {
             <div className="hotels">
               {stop.hotels.map((h) => (
                 <HotelCard key={h.id} stop={stop} hotel={h} agentName={agentName}
-                  selected={stop.chosenId === h.id} locked={hs.confirmed} busy={!!busy}
+                  selected={stop.chosenId === h.id} locked={hs.confirmed} busy={!!busy} final={final}
                   onPick={(hid) => pick(stop.id, hid)} />
               ))}
             </div>

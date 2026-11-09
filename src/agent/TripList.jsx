@@ -12,8 +12,9 @@ function when(t) {
   return null;
 }
 
-function choice(label, total, chosen, confirmedAt) {
+function choice(label, total, chosen, confirmedAt, finalAt) {
   if (!total) return null;
+  if (finalAt) return { text: `${label}: תוכנית סופית`, kind: "sea" };
   if (confirmedAt) return { text: `${label} אושרו`, kind: "ok" };
   if (chosen) return { text: `${label}: נבחרו ${chosen}/${total}`, kind: "clay" };
   return { text: `${label}: ממתין`, kind: "clay" };
@@ -23,8 +24,8 @@ function statuses(t) {
   const w = when(t);
   if (w) return [w];
   const list = [
-    choice("טיסות", t.flightGroupsCount, t.flightsChosenCount, t.flightsConfirmedAt),
-    choice("מלונות", t.stopsCount, t.chosenCount, t.hotelsConfirmedAt),
+    choice("טיסות", t.flightGroupsCount, t.flightsChosenCount, t.flightsConfirmedAt, t.flightsFinalAt),
+    choice("מלונות", t.stopsCount, t.chosenCount, t.hotelsConfirmedAt, t.hotelsFinalAt),
   ].filter(Boolean);
   return list.length ? list : [{ text: "בהכנה", kind: "muted" }];
 }

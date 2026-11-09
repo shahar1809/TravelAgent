@@ -127,6 +127,7 @@ function cleanHotel(h: any) {
     description: str(h.description, 2000),
     tags: arr(h.tags).map((t: unknown) => str(t, 60)).filter(Boolean).slice(0, 8),
     priceNote: str(h.priceNote, 200),
+    price: str(h.price, 60),
     link: str(h.link, 500),
     imageUrl: str(h.imageUrl, 1000),
     color: str(h.color, 20),
@@ -175,6 +176,7 @@ function cleanTrip(input: Trip): Trip {
         baggage: str(o.baggage, 300),
         fareNote: str(o.fareNote, 300),
         priceNote: str(o.priceNote, 200),
+        price: str(o.price, 60),
         note: str(o.note, 500),
         segments: arr(o.segments).slice(0, 8).map((x: any) => ({
           id: id(x.id),
@@ -238,12 +240,16 @@ async function clientView(trip: Trip) {
   // Clients see only the room types she ticked, and never her photo pool.
   const stops = arr(rest.stops).map((s: any) => ({
     ...s,
-    hotels: arr(s.hotels).map(({ photoPool, bankId, ...h }: any) => ({
+    hotels: arr(s.hotels).filter((h: any) => !rest.hotelsFinalAt || h.id === (s.chosenId || s.pickId)).map(({ photoPool, bankId, ...h }: any) => ({
       ...h,
       rooms: arr(h.rooms).filter((r: any) => r.show).map(({ sourceId, show, ...r }: any) => r),
     })),
   }));
-  return { ...rest, stops, agency: settings };
+  const flightGroups = arr(rest.flightGroups).map((g: any) => ({
+    ...g,
+    options: arr(g.options).filter((o: any) => !rest.flightsFinalAt || o.id === (g.chosenId || g.pickId)),
+  }));
+  return { ...rest, stops, flightGroups, agency: settings };
 }
 
 function summary(t: Trip) {
@@ -261,6 +267,8 @@ function summary(t: Trip) {
     flightGroupsCount: arr(t.flightGroups).length,
     flightsChosenCount: arr(t.flightGroups).filter((g: any) => g.chosenId).length,
     flightsConfirmedAt: t.flightsConfirmedAt || null,
+    hotelsFinalAt: t.hotelsFinalAt || null,
+    flightsFinalAt: t.flightsFinalAt || null,
     updatedAt: t.updatedAt,
   };
 }
@@ -364,6 +372,7 @@ async function bankRoutes(req: Request, seg: string[]) {
       const hotel = cleanHotel(body.hotel || {});
       if (!hotel.name) return fail(400, "למלון חסר שם");
       hotel.priceNote = "";
+      hotel.price = "";
       const key = linkKey(hotel.link);
       const same = key ? idx.hotels.find((x) => x.linkKey === key) : null;
       const meta = same || { id: newId(6), chosenCount: 0, addedCount: 0 };
@@ -385,6 +394,7 @@ async function bankRoutes(req: Request, seg: string[]) {
       if (body.hotel) {
         hotel = cleanHotel({ ...body.hotel, id: meta.id, bankId: meta.id });
         hotel.priceNote = "";
+      hotel.price = "";
         await trips().setJSON(`bank/hotel/${meta.id}`, hotel);
       }
       if (body.folderId) {
@@ -645,13 +655,47 @@ async function agentRoutes(req: Request, seg: string[]) {
     }
   }
 
+  // She locks the plan: each stop/flight keeps the client's choice, else her recommendation.
+  if (sub === "finalize-hotels" && m === "POST") {
+    const missing = arr(trip.stops).filter((st: any) => !arr(st.hotels).some((h: any) => h.id === (st.chosenId || st.pickId)));
+    if (missing.length) return fail(400, `אין מלון נבחר או מומלץ ב${missing.map((st: any) => st.city || "עצירה").join(", ")}`);
+    for (const st of arr(trip.stops)) st.chosenId = st.chosenId || st.pickId;
+    const wasConfirmed = !!trip.hotelsConfirmedAt;
+    trip.hotelsConfirmedAt = trip.hotelsConfirmedAt || new Date().toISOString();
+    trip.hotelsFinalAt = new Date().toISOString();
+    await saveTrip(trip);
+    if (!wasConfirmed) await countBankChoices(trip).catch(() => {});
+    return json(trip);
+  }
+  if (sub === "finalize-flights" && m === "POST") {
+    const missing = arr(trip.flightGroups).filter((g: any) => !arr(g.options).some((o: any) => o.id === (g.chosenId || g.pickId)));
+    if (missing.length) return fail(400, `אין טיסה נבחרת או מומלצת ב${missing.map((g: any) => g.title || "טיסה").join(", ")}`);
+    for (const g of arr(trip.flightGroups)) g.chosenId = g.chosenId || g.pickId;
+    trip.flightsConfirmedAt = trip.flightsConfirmedAt || new Date().toISOString();
+    trip.flightsFinalAt = new Date().toISOString();
+    await saveTrip(trip);
+    return json(trip);
+  }
+  if (sub === "unfinalize-hotels" && m === "POST") {
+    trip.hotelsFinalAt = null;
+    await saveTrip(trip);
+    return json(trip);
+  }
+  if (sub === "unfinalize-flights" && m === "POST") {
+    trip.flightsFinalAt = null;
+    await saveTrip(trip);
+    return json(trip);
+  }
+
   if (sub === "unlock-flights" && m === "POST") {
+    trip.flightsFinalAt = null;
     trip.flightsConfirmedAt = null;
     await saveTrip(trip);
     return json(trip);
   }
 
   if (sub === "unlock" && m === "POST") {
+    trip.hotelsFinalAt = null;
     trip.hotelsConfirmedAt = null;
     await saveTrip(trip);
     return json(trip);

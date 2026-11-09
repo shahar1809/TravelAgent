@@ -41,6 +41,11 @@ The **טיסות** tab works like hotels:
 - **שכפול** copies an option, which is the fastest way to build alternatives.
 - The chosen flight (or her recommendation until the client chooses) appears in the client's daily schedule and calendar export. Flight entries no longer need to be added in the schedule tab.
 
+## Prices and the final plan
+
+- Every hotel option and flight option has a **מחיר** field, shown to the client on the card (free text, e.g. "€1,460 לכל השהות"). Prices are not saved into the hotel bank.
+- When the plan is settled, she clicks **נעילה ותוכנית סופית** in the מלונות or טיסות tab (save first). Each stop/flight keeps the client's choice, or her recommendation if they didn't choose, and the client then sees only that final plan ("המלונות שלכם", "הטיסות שלכם"). **ביטול נעילה** shows all the options again.
+
 ## Hotel bank
 
 **מאגר מלונות** (in the side menu) keeps the hotels she recommends again and again, in destination folders grouped by country (for example איטליה → סיציליה).

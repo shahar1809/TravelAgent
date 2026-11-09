@@ -5,7 +5,7 @@ import { Area, Field, Select, TagsField } from "./fields.jsx";
 export const HOTEL_COLORS = ["#2E5A5C", "#C8923A", "#6B7248", "#B5502F", "#6E9A9B", "#8E5A2E"];
 
 export const emptyHotel = (id, color = HOTEL_COLORS[0]) => ({
-  id, name: "", stars: 4, description: "", tags: [], priceNote: "", link: "", imageUrl: "", address: "",
+  id, name: "", stars: 4, description: "", tags: [], priceNote: "", price: "", link: "", imageUrl: "", address: "",
   images: [], rooms: [], photoPool: [], color, bankId: "",
 });
 
@@ -14,7 +14,7 @@ export default function HotelForm({ hotel: h, set, showPrice = true }) {
   return (
     <>
       <HotelImport onImported={(imp) => set((x) => {
-        const keep = { id: x.id, priceNote: x.priceNote, color: x.color, bankId: x.bankId };
+        const keep = { id: x.id, priceNote: x.priceNote, price: x.price, color: x.color, bankId: x.bankId };
         Object.assign(x, imp, keep);
       })} />
       <Field label="שם המלון" value={h.name} onChange={(v) => set((x) => { x.name = v; })} />
@@ -25,6 +25,9 @@ export default function HotelForm({ hotel: h, set, showPrice = true }) {
           ? <Field label="הערת מחיר" hint="למשל: הכי משתלם" value={h.priceNote} onChange={(v) => set((x) => { x.priceNote = v; })} />
           : <Field label="כתובת" value={h.address} onChange={(v) => set((x) => { x.address = v; })} />}
       </div>
+      {showPrice && (
+        <Field label="מחיר" hint="מוצג ללקוח, למשל: €1,460 לכל השהות" value={h.price} onChange={(v) => set((x) => { x.price = v; })} />
+      )}
       <Area label="תיאור" rows={3} value={h.description} onChange={(v) => set((x) => { x.description = v; })} />
       <TagsField label="תגיות" value={h.tags || []} onChange={(v) => set((x) => { x.tags = v; })} />
       <Field label="קישור למלון" hint="מתמלא בייבוא. הלקוח רואה ״לאתר המלון״" type="url" dir="ltr" value={h.link} onChange={(v) => set((x) => { x.link = v; })} />

@@ -10,6 +10,26 @@ import SaveToBank from "./SaveToBank.jsx";
 import { folderLabel, useBank } from "./bank.js";
 
 
+function LockPanel_hotels({ saved, action }) {
+  const final = saved?.hotelsFinalAt;
+  if (final) {
+    return (
+      <Notice kind="ok">
+        <strong>המלונות נעולים.</strong> הלקוח רואה רק את התוכנית הסופית (מסומנת ״בתוכנית הסופית״).{" "}
+        <button type="button" className="text-link" onClick={() => action("unfinalize-hotels", "לבטל את הנעילה? הלקוח יראה שוב את כל האפשרויות.")}>ביטול נעילה</button>
+      </Notice>
+    );
+  }
+  return (
+    <div className="lock-bar">
+      <span>כשהכול סגור, נעלי את ההמלונות: הלקוח יראה רק את האפשרות שנבחרה בכל עצירה (או ההמלצה שלך, אם לא בחר).</span>
+      <button type="button" className="btn btn-primary" onClick={() => action("finalize-hotels", "לנעול ולהציג ללקוח רק את התוכנית הסופית?")}>
+        <Icon name="check" size={16} /> נעילה ותוכנית סופית
+      </button>
+    </div>
+  );
+}
+
 function move(list, i, dir) {
   const j = i + dir;
   if (j < 0 || j >= list.length) return;
@@ -42,7 +62,7 @@ export default function EditHotels({ trip, update, saved, action }) {
 
   return (
     <div className="stack-lg">
-      {confirmed ? (
+      {saved?.hotelsFinalAt ? null : confirmed ? (
         <Notice kind="ok">
           הלקוח אישר את המלונות ב־{dayMonth(confirmed.slice(0, 10))}.{" "}
           <button type="button" className="text-link" onClick={() => action("unlock", "לפתוח את הבחירה מחדש? הלקוח יוכל לשנות ולאשר שוב.")}>
@@ -53,6 +73,7 @@ export default function EditHotels({ trip, update, saved, action }) {
         <p className="muted">הלקוח רואה את העצירות לפי הסדר, ובוחר מלון אחד בכל עצירה. המלון שמסומן כהמלצה שלך מודגש אצלו.</p>
       )}
 
+      {trip.stops.length > 0 && <LockPanel_hotels saved={saved} action={action} />}
       {note && <Notice kind={note.kind}>{note.text}</Notice>}
       {trip.stops.map((s, si) => (
         <section key={s.id} className="panel stack">
@@ -90,7 +111,8 @@ export default function EditHotels({ trip, update, saved, action }) {
                     ההמלצה שלי
                   </label>
                   <div className="row">
-                    {chosen[s.id] === h.id && <span className="chip chip-ok">הלקוח בחר</span>}
+                    {saved?.hotelsFinalAt && chosen[s.id] === h.id ? <span className="chip chip-ok">בתוכנית הסופית</span>
+                      : chosen[s.id] === h.id && <span className="chip chip-ok">הלקוח בחר</span>}
                     {bank && h.bankId && folderOf(h.bankId) && (
                       <>
                         <span className="chip chip-sea" title={folderLabel(folderOf(h.bankId))}>מהמאגר · {folderOf(h.bankId).name}</span>
@@ -134,7 +156,7 @@ export default function EditHotels({ trip, update, saved, action }) {
               for (const b of list) {
                 if (st.hotels.length >= 6 || st.hotels.some((x) => x.bankId === b.bankId)) continue;
                 const hid = newId();
-                st.hotels.push({ ...b, id: hid, bankId: b.bankId, priceNote: "" });
+                st.hotels.push({ ...b, id: hid, bankId: b.bankId, priceNote: "", price: "" });
                 if (!st.pickId) st.pickId = hid;
               }
             });

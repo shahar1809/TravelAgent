@@ -28,22 +28,23 @@ function Segment({ s }) {
   );
 }
 
-function OptionCard({ group, option, selected, locked, busy, onPick, agentName }) {
-  const isPick = group.pickId === option.id;
+function OptionCard({ group, option, selected, locked, busy, onPick, agentName, final }) {
+  const isPick = !final && group.pickId === option.id;
   const inputId = `f-${group.id}-${option.id}`;
   const choose = () => { if (!locked && !busy && !selected) onPick(option.id); };
   return (
-    <article className={`flight-opt${selected ? " selected" : ""}${locked ? " locked" : ""}`}
+    <article className={`flight-opt${selected && !final ? " selected" : ""}${locked ? " locked" : ""}${final ? " final" : ""}`}
       onClick={(e) => { if (!e.target.closest("a, input, label, details")) choose(); }}>
       <div className="opt-head">
         <label className="hotel-head" htmlFor={inputId}>
           <input id={inputId} type="radio" name={`fg-${group.id}`} checked={selected} disabled={locked || busy} onChange={choose} className="sr-radio" />
-          <span className="radio-mark" aria-hidden="true">{selected && <Icon name="check" size={14} stroke={2.4} />}</span>
+          {!final && <span className="radio-mark" aria-hidden="true">{selected && <Icon name="check" size={14} stroke={2.4} />}</span>}
           <span className="hotel-name" dir="auto">{option.title || "אפשרות טיסה"}</span>
         </label>
         <div className="row">
           {isPick && <span className="chip chip-clay">ההמלצה של {agentName}</span>}
           {option.priceNote && <span className="price-note">{option.priceNote}</span>}
+          {option.price && <span className="price" dir="auto">{option.price}</span>}
         </div>
       </div>
 
@@ -84,6 +85,7 @@ export default function Flights({ trip, act }) {
   const groups = trip.flightGroups || [];
   const fs = flightsState(trip);
   const agentName = trip.agency?.agentName || "הסוכנת";
+  const final = !!trip.flightsFinalAt;
 
   if (!groups.length) {
     return (
@@ -109,16 +111,16 @@ export default function Flights({ trip, act }) {
   return (
     <div className="stack-lg">
       <div className="stack-sm">
-        <h1 className="display h1">טיסות</h1>
+        <h1 className="display h1">{final ? "הטיסות שלכם" : "טיסות"}</h1>
         <p className="muted">
-          {fs.confirmed
+          {final ? "התוכנית הסופית." : fs.confirmed
             ? "זו הטיסה שבחרתם. אם תרצו לשנות, פנו אליי ואפתח את הבחירה מחדש."
             : groups.some((g) => (g.options || []).length > 1)
               ? "בחרו את האפשרות שמתאימה לכם — ההמלצה שלי מסומנת. הבחירה נשמרת מיד, ובסוף מאשרים."
               : "אלה פרטי הטיסות שלכם. אשרו כדי שאזמין."}
         </p>
       </div>
-      {fs.confirmed && <Notice kind="ok">אישרתם את הטיסות ב־{dayMonth(trip.flightsConfirmedAt.slice(0, 10))}.</Notice>}
+      {fs.confirmed && !final && <Notice kind="ok">אישרתם את הטיסות ב־{dayMonth(trip.flightsConfirmedAt.slice(0, 10))}.</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
 
       {groups.map((g) => (
@@ -135,7 +137,7 @@ export default function Flights({ trip, act }) {
           <div className="hotels">
             {(g.options || []).map((o) => (
               <OptionCard key={o.id} group={g} option={o} agentName={agentName}
-                selected={g.chosenId === o.id} locked={fs.confirmed} busy={!!busy}
+                selected={g.chosenId === o.id} locked={fs.confirmed} busy={!!busy} final={final}
                 onPick={(oid) => run(g.id, "choose-flight", { groupId: g.id, optionId: oid })} />
             ))}
           </div>

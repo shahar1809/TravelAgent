@@ -67,6 +67,10 @@ In **מלונות**, every hotel option has an import box. Booking blocks automa
 - **Hebrew text:** add an `ANTHROPIC_API_KEY` environment variable and the description, tags and room names are rewritten in Hebrew (Claude Haiku, about one cent per hotel). Without it, text comes in the page's language.
 - Photos are shown from Booking's servers, not copied. They belong to the hotel or Booking; fine for showing clients, not for public marketing.
 
+## Opening vouchers
+
+Vouchers open inside the app in a full-screen viewer (PDFs are drawn page by page with pdf.js, images shown as is), with **חזרה** to return. The phone's back button also closes it, so the app never gets stuck on a PDF with no way back. The share button sends the file to Wallet, Files, WhatsApp and so on, or downloads it on a computer.
+
 ## Offline
 
 The client app is a PWA. After it's opened once online, the trip, schedule and opened vouchers work without internet (the wallet pre-loads every voucher file). Clients can add it to the home screen.

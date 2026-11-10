@@ -45,7 +45,7 @@ export default function CodeScreen({ onEnter, reason }) {
       <form className="gate-form" onSubmit={submit}>
         <label htmlFor="trip-code" className="gate-label">קוד הטיול</label>
         <input id="trip-code" ref={input} className="gate-input" inputMode="numeric" autoComplete="one-time-code"
-          pattern="[0-9 -]*" maxLength={10} dir="ltr" value={code}
+          maxLength={10} dir="ltr" value={code}
           onChange={(e) => setCode(e.target.value.replace(/[^\d -]/g, ""))} aria-describedby="code-help" />
         <p id="code-help" className="muted small">הקוד נמצא בהודעה שקיבלתם מהסוכנת. מכניסים אותו פעם אחת, והאפליקציה זוכרת אותו.</p>
         {reason && !error && <Notice kind="info">{reason}</Notice>}

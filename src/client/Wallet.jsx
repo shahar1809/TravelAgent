@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fileUrl } from "../api.js";
 import { CopyButton, Icon, VOUCHER_KINDS } from "../ui.jsx";
+import DocViewer from "./DocViewer.jsx";
 
 export default function Wallet({ trip }) {
   const vouchers = trip.vouchers;
+  const [open, setOpen] = useState(null);
 
   // Open every attached document once so it stays available offline.
   useEffect(() => {
@@ -47,9 +49,9 @@ export default function Wallet({ trip }) {
                 <div className="ticket-actions">
                   {v.ref && <CopyButton text={v.ref} label="העתקת אסמכתא" />}
                   {v.fileId && (
-                    <a className="btn btn-primary" href={fileUrl(v.fileId)} target="_blank" rel="noreferrer">
+                    <button type="button" className="btn btn-primary" onClick={() => setOpen(v)}>
                       <Icon name="file" size={16} /> פתיחת השובר
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
@@ -57,6 +59,7 @@ export default function Wallet({ trip }) {
           );
         })}
       </ul>
+      {open && <DocViewer voucher={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }

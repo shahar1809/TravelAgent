@@ -635,3 +635,17 @@ p { margin: 0; }
 .money { unicode-bidi: isolate; direction: ltr; white-space: nowrap; }
 .money .cur { font-family: var(--body); font-weight: 600; letter-spacing: 0; margin-inline-end: 0.06em; }
 .display .money .cur, .price .cur, .money.price .cur { font-size: 0.75em; vertical-align: baseline; font-weight: 700; margin-inline-end: 0.04em; }
+
+/* in-app voucher viewer */
+.docview { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: #2A322D; color: var(--paper); }
+.docview::backdrop { background: #2A322D; }
+.docview[open] { display: flex; flex-direction: column; }
+.docview-top { display: flex; align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top)) 10px 8px; background: var(--ink); }
+.docview-close { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 14px 0 10px; border: none; border-radius: 999px; background: var(--paper); color: var(--ink); font-weight: 600; cursor: pointer; }
+.docview-title { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.docview-share { width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(244, 239, 230, 0.15); color: var(--paper); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.docview-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 8px 8px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.docview-body img { max-width: 100%; height: auto; background: #fff; border-radius: 4px; }
+.docview-pages { direction: ltr; letter-spacing: normal; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.docview-pages canvas { background: #fff; border-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); max-width: 100%; height: auto; }
+.docview-msg { margin: auto; padding: 40px 20px; text-align: center; }
